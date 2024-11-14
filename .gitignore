@@ -1,0 +1,21 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+*.o
+*.out
+
+# Vendor directory (for Go modules)
+/vendor/
+
+# Go test binary
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.coverprofile
+
+# log 
+*.log
+cmd/server/conf/config.yaml
