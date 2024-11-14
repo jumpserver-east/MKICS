@@ -295,7 +295,7 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 	}
 	global.ZAPLOG.Info("降低该客服空闲权重")
 	ctx := context.Background()
-	weightkey := staffid + "-weight"
+	weightkey := "staffweight:" + staffid
 	if err = global.RDS.Decr(ctx, weightkey).Err(); err != nil {
 		return err
 	}
