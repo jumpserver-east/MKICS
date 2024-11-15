@@ -333,13 +333,9 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, khi
 		return
 	}
 	global.ZAPLOG.Info("会话超时，已变更状态")
-	if err := u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
-		Message:    kfinfo.ChatendMsg,
-		Credential: credential,
-	}); err != nil {
+	options := parseMenuTextToOptions(kfinfo.ChatendMsg, credential)
+	if err := u.wecomkf.SendMenuMsgOnEvent(options); err != nil {
 		global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
-	} else {
-		global.ZAPLOG.Info("发送结束会话语", zap.String("ChatendMsg:", kfinfo.ChatendMsg))
 	}
 	if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
 		global.ZAPLOG.Error("Incr", zap.Error(err))
