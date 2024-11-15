@@ -45,9 +45,16 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 		var syncMsgOptions kf.SyncMsgOptions
 		syncMsgOptions.OpenKfID = callbackMessage.OpenKfID
 		syncMsgOptions.Token = callbackMessage.Token
-		wecomcursorkey := KeyWecomCursorPrefix + messageInfo.KFID
-		wecomcursorvalue := global.RDS.Get(context.Background(), wecomcursorkey).String()
-		if wecomcursorvalue != "" {
+		wecomcursorkey := KeyWecomCursorPrefix + callbackMessage.OpenKfID
+		exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
+		if err != nil {
+			global.ZAPLOG.Error("failed to check key existence", zap.Error(err))
+		}
+		if exists > 0 {
+			wecomcursorvalue, err := global.RDS.Get(context.Background(), wecomcursorkey).Result()
+			if err != nil {
+				global.ZAPLOG.Error("failed to get wecomcursorkey", zap.Error(err))
+			}
 			syncMsgOptions.Cursor = wecomcursorvalue
 		}
 		message, err := k.KFClient.SyncMsg(syncMsgOptions)
