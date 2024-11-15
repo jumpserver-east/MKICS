@@ -2,11 +2,14 @@ package client
 
 import (
 	"EvoBot/backend/global"
+	"context"
 	"sync"
 
 	"github.com/silenceper/wechat/v2/work/kf"
 	"go.uber.org/zap"
 )
+
+const KeyWecomCursorPrefix = "wecom:cursor:"
 
 type UserMsgQueue struct {
 	mu sync.Mutex
@@ -39,18 +42,30 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 	var messageInfo MessageInfo
 	callbackMessage, err := k.KFClient.GetCallbackMessage(body)
 	if callbackMessage.MsgType == "event" && callbackMessage.Event == "kf_msg_or_event" && err == nil {
-		// 缓存里取一下NextCursor（待完成）
-		options := kf.SyncMsgOptions{
-			OpenKfID: callbackMessage.OpenKfID,
-			Token:    callbackMessage.Token,
+		var syncMsgOptions kf.SyncMsgOptions
+		syncMsgOptions.OpenKfID = callbackMessage.OpenKfID
+		syncMsgOptions.Token = callbackMessage.Token
+		wecomcursorkey := KeyWecomCursorPrefix + messageInfo.KFID
+		wecomcursorvalue := global.RDS.Get(context.Background(), wecomcursorkey).String()
+		if wecomcursorvalue != "" {
+			syncMsgOptions.Cursor = wecomcursorvalue
 		}
-		message, err := k.KFClient.SyncMsg(options)
+		message, err := k.KFClient.SyncMsg(syncMsgOptions)
 		if err != nil {
 			return messageInfo, err
 		}
+		if err = global.RDS.Set(context.Background(), wecomcursorkey, message.NextCursor, 0).Err(); err != nil {
+			return messageInfo, err
+		}
 		for message.HasMore == 1 {
-			options.Cursor = message.NextCursor
-			messageMore, _ := k.KFClient.SyncMsg(options)
+			syncMsgOptions.Cursor = message.NextCursor
+			messageMore, err := k.KFClient.SyncMsg(syncMsgOptions)
+			if err != nil {
+				return messageInfo, err
+			}
+			if err = global.RDS.Set(context.Background(), wecomcursorkey, message.NextCursor, 0).Err(); err != nil {
+				return messageInfo, err
+			}
 			message.MsgList = append(message.MsgList, messageMore.MsgList...)
 			message.HasMore = messageMore.HasMore
 		}
