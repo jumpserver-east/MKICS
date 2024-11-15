@@ -86,22 +86,17 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 			messageInfo.KFID = msglast.OpenKFID
 			messageInfo.KHID = msglast.ExternalUserID
 			messageInfo.StaffID = statusinfo.ServiceUserID
-			switch statusinfo.ServiceState {
-			case 0:
+			if statusinfo.ServiceState == 0 {
 				_, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
 					OpenKFID:       msglast.OpenKFID,
 					ExternalUserID: msglast.ExternalUserID,
 					ServiceState:   1,
 				})
 				if err != nil {
-					return MessageInfo{}, err
+					return messageInfo, err
 				}
-				messageInfo.IsBot = true
-			case 1:
-				messageInfo.IsBot = true
-			case 2, 3, 4:
-				messageInfo.IsBot = false
 			}
+			messageInfo.ChatState = statusinfo.ServiceState
 			switch msglast.Origin {
 			case 3:
 				switch msglast.MsgType {

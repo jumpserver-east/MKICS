@@ -29,7 +29,7 @@ type MessageInfo struct {
 	Message     string `json:"message"`
 	MessageType string `json:"messagetype"`
 	Credential  string `json:"credential"`
-	IsBot       bool   `json:"isbot"`
+	ChatState   int    `json:"chatstate"`
 }
 
 type SendTextMsgOptions struct {

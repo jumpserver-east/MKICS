@@ -113,7 +113,7 @@ func (u *WecomLogic) Handle(body []byte) error {
 		global.ZAPLOG.Error("failed SyncMsg", zap.Error(err))
 		return err
 	}
-	if msginfo.MessageID != "" || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.IsBot {
+	if msginfo.MessageID != "" || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.ChatState != 0 {
 		global.ZAPLOG.Info("MessageInfo 内容:",
 			zap.String("MessageID", msginfo.MessageID),
 			zap.String("KFID", msginfo.KFID),
@@ -122,7 +122,7 @@ func (u *WecomLogic) Handle(body []byte) error {
 			zap.String("Message", msginfo.Message),
 			zap.String("MessageType", msginfo.MessageType),
 			zap.String("Credential", msginfo.Credential),
-			zap.Bool("IsBot", msginfo.IsBot),
+			zap.Int("ChatState", msginfo.ChatState),
 		)
 	}
 	return u.processMessage(msginfo)
@@ -242,18 +242,24 @@ func (u *WecomLogic) initializeWecomClient() error {
 }
 
 func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
-	if msginfo.IsBot {
-		return u.handleBotMessage(msginfo)
+	kfinfo, err := kFRepo.Get(kFRepo.WithKFID(msginfo.KFID))
+	if err != nil {
+		return err
 	}
-	if msginfo.KHID != "" {
-		kfinfo, err := kFRepo.Get(kFRepo.WithKFID(msginfo.KFID))
-		if err != nil {
-			return err
-		}
+	switch msginfo.ChatState {
+	case 1:
+		return u.handleBotMessage(msginfo, kfinfo)
+	case 2:
+		global.ZAPLOG.Info("未实现的聊天状态处理")
+	case 3:
 		err = global.RDS.Expire(context.Background(), msginfo.MessageID, time.Duration(kfinfo.ChatTimeout)*time.Second).Err()
 		if err != nil {
 			global.ZAPLOG.Error("重置缓存时间失败", zap.Error(err))
 		}
+	case 4:
+		global.ZAPLOG.Info("未实现的聊天状态处理")
+	default:
+		global.ZAPLOG.Info("未实现的聊天状态处理")
 	}
 	return nil
 }
@@ -413,12 +419,7 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 	return nil
 }
 
-func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo) error {
-	kfinfo, err := kFRepo.Get(kFRepo.WithKFID(msginfo.KFID))
-	if err != nil {
-		global.ZAPLOG.Error("找不到与微信对接的客服，将默认使用机器人回复", zap.Error(err))
-		return u.handleBotReply(msginfo, kfinfo)
-	}
+func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
 	if msginfo.MessageType == "enter_session" {
 		if msginfo.Credential != "" {
 			options := parseMenuTextToOptions(kfinfo.BotWelcomeMsg, msginfo.Credential)
@@ -444,7 +445,7 @@ func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo) error {
 		return nil
 	default:
 		global.ZAPLOG.Error("该客服模式不存在")
-		return err
+		return nil
 	}
 }
 
