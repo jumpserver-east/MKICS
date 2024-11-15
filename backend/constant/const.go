@@ -5,4 +5,6 @@ const (
 
 	KeyUserTokenPrefix = "evobot:user:token:"
 	KeyPostTimeZSet    = "evobot:post:time"
+
+	KeyStaffWeightPrefix = "evobot:staff:weight:"
 )

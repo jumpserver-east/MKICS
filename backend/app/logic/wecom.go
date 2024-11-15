@@ -5,6 +5,7 @@ import (
 	"EvoBot/backend/app/dto/request"
 	"EvoBot/backend/app/dto/response"
 	"EvoBot/backend/app/model"
+	"EvoBot/backend/constant"
 	"EvoBot/backend/global"
 	"EvoBot/backend/utils/wecom"
 	wecomclient "EvoBot/backend/utils/wecom/client"
@@ -57,11 +58,17 @@ func (u *WecomLogic) ConfigAppUpdate(req request.WecomConfigApp) error {
 		global.ZAPLOG.Error("failed to update Wecom config", zap.Error(err))
 		return err
 	}
-	kf, err := u.loadWecomKFClientByFrom()
+	u.wecomkf, err = wecom.NewWecomKFClient(wecomclient.WecomConfig{
+		CorpID:         conf.CorpID,
+		Token:          conf.Token,
+		EncodingAESKey: conf.EncodingAESKey,
+		Secret:         conf.Secret,
+		AgentID:        conf.AgentID,
+	})
 	if err != nil {
+		global.ZAPLOG.Error("failed to initialize WecomKFClient", zap.Error(err))
 		return err
 	}
-	u.wecomkf = kf
 	return nil
 }
 
@@ -165,7 +172,7 @@ func (u *WecomLogic) CheckReceptionist(stafflist []string, receptionistlist []we
 		return err
 	}
 	var invalidUserIDs []string
-	receptionistIDSet := make(map[string]struct{})
+	receptionistIDSet := make(map[string]struct{}, len(receptionistlist))
 	for _, receptionist := range receptionistlist {
 		receptionistIDSet[receptionist.UserID] = struct{}{}
 	}
@@ -179,8 +186,7 @@ func (u *WecomLogic) CheckReceptionist(stafflist []string, receptionistlist []we
 		}
 	}
 	if len(invalidUserIDs) > 0 {
-		errorMessage := fmt.Sprintf("ErrStaffIDLIST: %s", invalidUserIDs)
-		return fmt.Errorf(errorMessage)
+		return fmt.Errorf("ErrStaffIDLIST: %v", invalidUserIDs)
 	}
 	return nil
 }
@@ -208,35 +214,26 @@ func (u *WecomLogic) AddContactWay(kfid string) (string, error) {
 }
 
 // Helper
-func (u *WecomLogic) loadWecomKFClientByFrom() (wecom.WecomKFClient, error) {
+func (u *WecomLogic) initializeWecomClient() error {
+	if u.wecomkf != nil {
+		return nil
+	}
 	conf, err := wecomRepo.Get(wecomRepo.WithType("app"))
 	if err != nil {
 		global.ZAPLOG.Error("failed to get Wecom config", zap.Error(err))
-		return nil, err
+		return err
 	}
 	if conf.CorpID == "" || conf.AgentID == "" || conf.EncodingAESKey == "" || conf.Secret == "" || conf.Token == "" {
 		global.ZAPLOG.Error("wecom config is nil", zap.Error(err))
+		return fmt.Errorf("incomplete Wecom config")
 	}
-	kf, err := wecom.NewWecomKFClient(wecomclient.WecomConfig{
+	u.wecomkf, err = wecom.NewWecomKFClient(wecomclient.WecomConfig{
 		CorpID:         conf.CorpID,
 		Token:          conf.Token,
 		EncodingAESKey: conf.EncodingAESKey,
 		Secret:         conf.Secret,
 		AgentID:        conf.AgentID,
 	})
-	if err != nil {
-		global.ZAPLOG.Error("failed to New WecomKFClient", zap.Error(err))
-		return nil, err
-	}
-	return kf, nil
-}
-
-func (u *WecomLogic) initializeWecomClient() error {
-	if u.wecomkf != nil {
-		return nil
-	}
-	var err error
-	u.wecomkf, err = u.loadWecomKFClientByFrom()
 	if err != nil {
 		global.ZAPLOG.Error("failed to initialize WecomKFClient", zap.Error(err))
 		return err
@@ -295,8 +292,8 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 	}
 	global.ZAPLOG.Info("降低该客服空闲权重")
 	ctx := context.Background()
-	weightkey := "staffweight:" + staffid
-	if err = global.RDS.Decr(ctx, weightkey).Err(); err != nil {
+	staffweightkey := constant.KeyStaffWeightPrefix + staffid
+	if err = global.RDS.Decr(ctx, staffweightkey).Err(); err != nil {
 		return err
 	}
 	global.ZAPLOG.Info("设置回复时间缓存，开始监控回复超时时间")
@@ -304,18 +301,18 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 		global.ZAPLOG.Error("redis set error", zap.Error(err))
 		return err
 	}
-	go u.monitorChat(ctx, kfinfo, msginfo.KHID, weightkey, msginfo.MessageID)
+	go u.monitorChat(ctx, kfinfo, msginfo.KHID, staffweightkey, msginfo.MessageID)
 	return nil
 }
 
-func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, khid, weightkey, messageID string) {
+func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, khid, staffweightkey, messageID string) {
 	ticker := time.NewTicker(time.Duration(kfinfo.ChatTimeout) * time.Second / 2) // 半个超时时间
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			if !u.hasKHReplied(ctx, messageID) {
-				u.handleChatTimeout(ctx, kfinfo, khid, weightkey)
+				u.handleChatTimeout(ctx, kfinfo, khid, staffweightkey)
 				return
 			}
 			global.ZAPLOG.Info("客户会话未过期")
@@ -326,7 +323,7 @@ func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, khid, wei
 	}
 }
 
-func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, khid, weightkey string) {
+func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, khid, staffweightkey string) {
 	credential, err := u.wecomkf.ServiceStateTransToEnd(wecomclient.ServiceStateTransOptions{
 		OpenKFID:       kfinfo.KFID,
 		ExternalUserID: khid,
@@ -344,10 +341,10 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, khi
 	} else {
 		global.ZAPLOG.Info("发送结束会话语", zap.String("ChatendMsg:", kfinfo.ChatendMsg))
 	}
-	if err := global.RDS.Incr(ctx, weightkey).Err(); err != nil {
+	if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
 		global.ZAPLOG.Error("Incr", zap.Error(err))
 	} else {
-		global.ZAPLOG.Info("结束会话变更权重", zap.String("weightkey:", weightkey))
+		global.ZAPLOG.Info("结束会话变更权重", zap.String("staffweightkey:", staffweightkey))
 	}
 }
 
@@ -385,15 +382,11 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 		}
 		global.ZAPLOG.Info("该客户没有上一次接待人员", zap.String("KHID", msginfo.KHID))
 	}
-	if kfinfo.ReceiveRule == 1 {
+	switch kfinfo.ReceiveRule {
+	case 1:
 		global.ZAPLOG.Info("轮流接待模式", zap.String("KFName", kfinfo.KFName))
 		global.ZAPLOG.Info("未实现功能")
-		return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-			KFID:    msginfo.KFID,
-			KHID:    msginfo.KHID,
-			Message: kfinfo.UnmannedMsg,
-		})
-	} else if kfinfo.ReceiveRule == 2 {
+	case 2:
 		global.ZAPLOG.Info("空闲接待模式", zap.String("KFName", kfinfo.KFName))
 		var staffIDs []string
 		for _, staffinfo := range kfinfo.Staffs {
@@ -405,44 +398,24 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 				staffIDs = append(staffIDs, staffinfo.StaffID)
 			}
 		}
-		selectedKF, weight := getHighestWeightKF(staffIDs)
-		if selectedKF != "" {
-			global.ZAPLOG.Info("选出的客服", zap.String("StaffID", selectedKF), zap.Int("权重", weight))
-			err := u.handleSuccessfulTransfer(msginfo, selectedKF, kfinfo)
-			if err != nil {
+		selectedstaff, staffweightvalue := getHighestWeightStaff(staffIDs)
+		if selectedstaff != "" {
+			global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", selectedstaff), zap.Int("权重", staffweightvalue))
+			if err := u.handleSuccessfulTransfer(msginfo, selectedstaff, kfinfo); err != nil {
 				return err
 			}
-		} else {
-			global.ZAPLOG.Info("没有找到空闲的客服")
-			return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-				KFID:    msginfo.KFID,
-				KHID:    msginfo.KHID,
-				Message: kfinfo.UnmannedMsg,
-			})
 		}
-	} else {
+		global.ZAPLOG.Info("没有找到空闲的客服")
+		return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
+			KFID:    msginfo.KFID,
+			KHID:    msginfo.KHID,
+			Message: kfinfo.UnmannedMsg,
+		})
+	default:
 		global.ZAPLOG.Info("默认接待模式未配置", zap.String("KFName", kfinfo.KFName))
 		return nil
 	}
 	return nil
-}
-
-func getHighestWeightKF(staffIDs []string) (string, int) {
-	maxWeight := -1
-	selectedstaffid := ""
-	for _, staffID := range staffIDs {
-		key := "staffweight:" + staffID
-		weight, err := global.RDS.Get(context.Background(), key).Int()
-		if err != nil {
-			global.ZAPLOG.Error("获取权重失败", zap.String("key", key), zap.Error(err))
-			continue
-		}
-		if weight > maxWeight {
-			maxWeight = weight
-			selectedstaffid = staffID
-		}
-	}
-	return selectedstaffid, maxWeight
 }
 
 func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo) error {
@@ -634,81 +607,4 @@ func parseMenuTextToOptions(text, credential string) wecomclient.SendMenuMsgOnEv
 	}
 	resp.Credential = credential
 	return resp
-}
-
-func isStaffWorkByStaffID(staffid string) (bool, error) {
-	staffinfo, err := staffRepo.Get(staffRepo.WithStaffID(staffid)) //同kfinfo
-	if err != nil {
-		return false, err
-	}
-	for _, policy := range staffinfo.Policies {
-		if isWithinTime(policy.Repeat, policy.Week) {
-			for _, worktime := range policy.WorkTimes {
-				if isTimeInRange(worktime.StartTime, worktime.EndTime) {
-					ctx := context.Background()
-					key := "staffweight:" + staffid
-					_, err := global.RDS.Get(ctx, key).Result()
-					if err != nil {
-						global.ZAPLOG.Error("redis get error", zap.Error(err))
-						global.ZAPLOG.Info("初始化权重缓存")
-						err = global.RDS.Set(ctx, key, policy.MaxCount, 0).Err()
-						if err != nil {
-							global.ZAPLOG.Error("redis set error", zap.Error(err))
-							return false, err
-						}
-					}
-					return true, nil
-				}
-			}
-			global.ZAPLOG.Info("该接待人员的工作时间导致目前无法接待", zap.String("StaffName", staffinfo.StaffName))
-			return false, nil
-		} else {
-			global.ZAPLOG.Info("该接待人员的策略导致目前无法接待", zap.String("StaffName", staffinfo.StaffName))
-			return false, nil
-		}
-	}
-	return false, nil
-}
-
-func isTimeInRange(startTimeStr, endTimeStr string) bool {
-	layout := "15:04:05"
-	startTime, err1 := time.Parse(layout, startTimeStr)
-	endTime, err2 := time.Parse(layout, endTimeStr)
-	if err1 != nil || err2 != nil {
-		global.ZAPLOG.Error("Error parsing time:", zap.Error(err1))
-		global.ZAPLOG.Error("Error parsing time:", zap.Error(err2))
-		return false
-	}
-	now := time.Now()
-	currentTime, _ := time.Parse(layout, now.Format(layout))
-	if currentTime.After(startTime) && currentTime.Before(endTime) {
-		return true
-	}
-	return false
-}
-
-func isWithinTime(repeat int, week string) bool {
-	currentTime := time.Now()
-	currentWeekday := int(currentTime.Weekday()) // 0: Sunday, 1: Monday, ..., 6: Saturday
-	switch repeat {
-	case 1:
-		if len(week) != 7 {
-			return false
-		}
-		return week[currentWeekday] == '1'
-	case 2:
-		return true
-	case 3:
-		return currentWeekday >= 1 && currentWeekday <= 5
-	case 4:
-		// 法定工作日有效，跳过法定节假日（此处需要法定节假日的额外数据支持，简单实现为周一到周五）
-		// 简单假设法定工作日是周一到周五，实际情况可能要处理节假日
-		return currentWeekday >= 1 && currentWeekday <= 5
-	case 5:
-		// 法定节假日有效，跳过法定工作日（此处需要法定节假日的额外数据支持）
-		// 简单假设法定节假日是周六和周日，实际情况可能要处理节假日
-		return currentWeekday == 0 || currentWeekday == 6
-	default:
-		return false
-	}
 }

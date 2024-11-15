@@ -116,7 +116,6 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 			}
 			return messageInfo, nil
 		}
-		global.ZAPLOG.Info("len(message.MsgList)<=0")
 		return messageInfo, err
 	}
 	return messageInfo, err
