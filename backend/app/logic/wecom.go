@@ -283,14 +283,14 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 		return err
 	}
 	global.ZAPLOG.Info("变更微信客服会话状态成功")
-	global.ZAPLOG.Info("更新客户模型的上一次接待人员")
+	global.ZAPLOG.Info("更新客户的上一次接待人员")
 	if err = kHRepo.UpdatebyKHID(model.KH{
 		KHID:    msginfo.KHID,
 		StaffID: staffid,
 	}); err != nil {
-		global.ZAPLOG.Error("更新失败，没有配置为客户上一次接待人员，下一次该客户将会被ReceiveRule匹配规则", zap.Error(err))
+		global.ZAPLOG.Error("更新客户的上一次接待人员失败", zap.Error(err))
 	}
-	global.ZAPLOG.Info("降低该客服空闲权重")
+	global.ZAPLOG.Info("降低该接待人员空闲权重")
 	ctx := context.Background()
 	staffweightkey := constant.KeyStaffWeightPrefix + staffid
 	if err = global.RDS.Decr(ctx, staffweightkey).Err(); err != nil {
@@ -306,7 +306,7 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 }
 
 func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, khid, staffweightkey, messageID string) {
-	ticker := time.NewTicker(time.Duration(kfinfo.ChatTimeout) * time.Second / 2) // 半个超时时间
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -315,7 +315,6 @@ func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, khid, sta
 				u.handleChatTimeout(ctx, kfinfo, khid, staffweightkey)
 				return
 			}
-			global.ZAPLOG.Info("客户会话未过期")
 		case <-ctx.Done():
 			global.ZAPLOG.Info("监控已停止")
 			return

@@ -5,12 +5,8 @@ import (
 	"EvoBot/backend/app/dto"
 	"EvoBot/backend/app/dto/request"
 	"EvoBot/backend/constant"
-	"EvoBot/backend/global"
-	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // @Tags wecom_config
@@ -84,41 +80,14 @@ func (b *BaseApi) WecomHandle(ctx *gin.Context) {
 	// 正确响应本次请求
 	// 企业微信服务器在五秒内收不到响应会断掉连接，并且重新发起请求，总共重试三次。
 	// 仅针对网络连接失败或者网络请求超时情况重试，建议开发者接受回调后立即应答，业务异步处理。
-
-	// 以上是企业微信对服务端的要求
-	// 其中，如果 post 实际有到服务端，那么没有及时应答就会重复处理三次同一消息
-	// 需要在服务端判断即使没有及时应答，服务端也应该对同一消息只处理一次，通过时间戳和随机数判断是否为同一消息
-	// 一定要考虑服务端网络延迟极大的情况，在日志需要体现！！！
 	body, err := ctx.GetRawData()
 	if err != nil {
 		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
 		return
 	}
-	timestamp := ctx.Query("timestamp")
-	nonce := ctx.Query("nonce")
-	messageID := fmt.Sprintf("%s-%s", timestamp, nonce)
-	// 检查消息是否已经处理过
-	exists, err := global.RDS.Exists(ctx, messageID).Result()
-	if err != nil {
-		global.ZAPLOG.Error("redis exists error", zap.Error(err))
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
-		return
-	}
-	if exists > 0 {
-		global.ZAPLOG.Info("收到重复消息事件, 不再处理")
-		helper.SuccessWithOutData(ctx)
-		return
-	}
-	// 标记消息为已处理，过期时间设置为15s，考虑负载并发
-	if err = global.RDS.Set(ctx, messageID, 1, 15*time.Second).Err(); err != nil {
-		global.ZAPLOG.Error("redis set error", zap.Error(err))
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
-		return
-	}
-	if err = wecomLogic.Handle(body); err != nil {
-		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
-		return
-	}
+	go func() {
+		wecomLogic.Handle(body)
+	}()
 	helper.SuccessWithOutData(ctx)
 }
 
