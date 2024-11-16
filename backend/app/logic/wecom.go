@@ -246,26 +246,38 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 	if err != nil {
 		return err
 	}
-	switch msginfo.ChatState {
-	case 1:
-		return u.handleBotMessage(msginfo, kfinfo)
-	case 2:
-		global.ZAPLOG.Info("未实现的聊天状态处理")
-	case 3:
-		err = global.RDS.Expire(context.Background(), msginfo.MessageID, time.Duration(kfinfo.ChatTimeout)*time.Second).Err()
-		if err != nil {
-			global.ZAPLOG.Error("重置缓存时间失败", zap.Error(err))
+	switch msginfo.MessageType {
+	case wecomclient.WecomMsgTypeEnterSession:
+		if msginfo.Credential != "" {
+			options := parseMenuTextToOptions(kfinfo.BotWelcomeMsg, msginfo.Credential)
+			return u.wecomkf.SendMenuMsgOnEvent(options)
 		}
-	case 4:
-		global.ZAPLOG.Info("未实现的聊天状态处理")
+		return nil
+	case wecomclient.WecomMsgTypeText:
+		switch msginfo.ChatState {
+		case 1:
+			return u.handleBotMessage(msginfo, kfinfo)
+		case 2:
+			global.ZAPLOG.Info("未实现的聊天状态处理")
+		case 3:
+			chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
+			if err = global.RDS.Set(context.Background(), chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
+				global.ZAPLOG.Error("redis set error", zap.Error(err))
+				return err
+			}
+		case 4:
+			global.ZAPLOG.Info("未实现的聊天状态处理")
+		default:
+			global.ZAPLOG.Info("未实现的聊天状态处理")
+		}
 	default:
-		global.ZAPLOG.Info("未实现的聊天状态处理")
+		global.ZAPLOG.Info("未实现的消息类型")
 	}
 	return nil
 }
 
 func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, staffid string, kfinfo model.KF) error {
-	global.ZAPLOG.Info("变更微信客服会话状态中")
+	global.ZAPLOG.Info("变更微信客服会话状态")
 	credential, err := u.wecomkf.ServiceStateTransToStaff(wecomclient.ServiceStateTransOptions{
 		OpenKFID:       msginfo.KFID,
 		ExternalUserID: msginfo.KHID,
@@ -288,7 +300,6 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 	}); err != nil {
 		return err
 	}
-	global.ZAPLOG.Info("变更微信客服会话状态成功")
 	global.ZAPLOG.Info("更新客户的上一次接待人员")
 	if err = kHRepo.UpdatebyKHID(model.KH{
 		KHID:    msginfo.KHID,
@@ -302,23 +313,25 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 	if err = global.RDS.Decr(ctx, staffweightkey).Err(); err != nil {
 		return err
 	}
-	global.ZAPLOG.Info("设置回复时间缓存，开始监控回复超时时间")
-	if err = global.RDS.Set(ctx, msginfo.MessageID, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
+	global.ZAPLOG.Info("缓存会话超时时间")
+	chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
+	if err = global.RDS.Set(ctx, chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
 		global.ZAPLOG.Error("redis set error", zap.Error(err))
 		return err
 	}
-	go u.monitorChat(ctx, kfinfo, msginfo.KHID, staffweightkey, msginfo.MessageID)
+	global.ZAPLOG.Info("开始监控会话任务")
+	go u.monitorChat(ctx, kfinfo, msginfo, staffweightkey)
 	return nil
 }
 
-func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, khid, staffweightkey, messageID string) {
+func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, msginfo wecomclient.MessageInfo, staffweightkey string) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			if !u.hasKHReplied(ctx, messageID) {
-				u.handleChatTimeout(ctx, kfinfo, khid, staffweightkey)
+			if !u.hasKHReplied(ctx, msginfo) {
+				u.handleChatTimeout(ctx, kfinfo, msginfo.KHID, staffweightkey)
 				return
 			}
 		case <-ctx.Done():
@@ -349,8 +362,9 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, khi
 	}
 }
 
-func (u *WecomLogic) hasKHReplied(ctx context.Context, messageID string) bool {
-	exists, err := global.RDS.Exists(ctx, messageID).Result()
+func (u *WecomLogic) hasKHReplied(ctx context.Context, msginfo wecomclient.MessageInfo) bool {
+	chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
+	exists, err := global.RDS.Exists(ctx, chatkey).Result()
 	if err != nil {
 		global.ZAPLOG.Error("检查客户回复缓存失败", zap.Error(err))
 		return false
@@ -420,13 +434,6 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 }
 
 func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
-	if msginfo.MessageType == "enter_session" {
-		if msginfo.Credential != "" {
-			options := parseMenuTextToOptions(kfinfo.BotWelcomeMsg, msginfo.Credential)
-			return u.wecomkf.SendMenuMsgOnEvent(options)
-		}
-		return nil
-	}
 	switch kfinfo.Status {
 	case 1:
 		keywords := strings.Split(kfinfo.TransferKeywords, ";")

@@ -9,7 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
-const KeyWecomCursorPrefix = "wecom:cursor:"
+const (
+	KeyWecomCursorPrefix     = "wecom:cursor:"
+	WecomMsgTypeEnterSession = "enter_session"
+	WecomMsgTypeText         = "text"
+)
 
 type UserMsgQueue struct {
 	mu sync.Mutex
@@ -78,29 +82,13 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 		}
 		if len(message.MsgList) > 0 {
 			msglast := message.MsgList[len(message.MsgList)-1]
-			statusinfo, _ := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
-				OpenKFID:       msglast.OpenKFID,
-				ExternalUserID: msglast.ExternalUserID,
-			})
 			messageInfo.MessageID = msglast.MsgID
-			messageInfo.KFID = msglast.OpenKFID
-			messageInfo.KHID = msglast.ExternalUserID
-			messageInfo.StaffID = statusinfo.ServiceUserID
-			if statusinfo.ServiceState == 0 {
-				_, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
-					OpenKFID:       msglast.OpenKFID,
-					ExternalUserID: msglast.ExternalUserID,
-					ServiceState:   1,
-				})
-				if err != nil {
-					return messageInfo, err
-				}
-			}
-			messageInfo.ChatState = statusinfo.ServiceState
 			switch msglast.Origin {
 			case 3:
+				messageInfo.KFID = msglast.OpenKFID
+				messageInfo.KHID = msglast.ExternalUserID
 				switch msglast.MsgType {
-				case "text":
+				case WecomMsgTypeText:
 					textmsg, _ := msglast.GetTextMessage()
 					messageInfo.MessageType = msglast.MsgType
 					messageInfo.Message = textmsg.Text.Content
@@ -111,7 +99,7 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 				switch msglast.MsgType {
 				case "event":
 					switch msglast.EventType {
-					case "enter_session":
+					case WecomMsgTypeEnterSession:
 						entersessioninfo, _ := msglast.GetEnterSessionEvent()
 						messageInfo.KFID = entersessioninfo.Event.OpenKFID
 						messageInfo.KHID = entersessioninfo.Event.ExternalUserID
@@ -126,11 +114,30 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 					return messageInfo, err
 				}
 			case 5:
+				messageInfo.KFID = msglast.OpenKFID
+				messageInfo.KHID = msglast.ExternalUserID
 				global.ZAPLOG.Info("接待人员在企业微信客户端发送的消息")
 				return messageInfo, err
 			default:
 				return messageInfo, err
 			}
+			statusinfo, _ := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
+				OpenKFID:       messageInfo.KFID,
+				ExternalUserID: messageInfo.KHID,
+			})
+			if statusinfo.ServiceState == 0 {
+				_, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
+					OpenKFID:       msglast.OpenKFID,
+					ExternalUserID: msglast.ExternalUserID,
+					ServiceState:   1,
+				})
+				if err != nil {
+					return messageInfo, err
+				}
+				statusinfo.ServiceState = 1
+			}
+			messageInfo.StaffID = statusinfo.ServiceUserID
+			messageInfo.ChatState = statusinfo.ServiceState
 			return messageInfo, nil
 		}
 		return messageInfo, err
@@ -166,7 +173,7 @@ func (k *WecomKF) SendTextMsg(info SendTextMsgOptions) error {
 		}{
 			Touser:   info.KHID,
 			OpenKfid: info.KFID,
-			MsgType:  "text",
+			MsgType:  WecomMsgTypeText,
 		}
 		sendmsg.Text.Content = content
 		if _, err := k.KFClient.SendMsg(sendmsg); err != nil {
@@ -186,7 +193,7 @@ func (k *WecomKF) SendTextMsgOnEvent(info SendTextMsgOnEventOptions) error {
 		} `json:"text"`
 	}{
 		Code:    info.Credential,
-		MsgType: "text",
+		MsgType: WecomMsgTypeText,
 	}
 	sendmsg.Text.Content = info.Message
 	if _, err := k.KFClient.SendMsgOnEvent(sendmsg); err != nil {
