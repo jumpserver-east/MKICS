@@ -15,7 +15,7 @@ import (
 // @Produce json
 // @Param req body dto.Policy true "policy Information"
 // @Success 200 {object} dto.Response
-// @Router /policy/ [post]
+// @Router /policy [post]
 func (u *BaseApi) PolicyAdd(ctx *gin.Context) {
 	var req dto.Policy
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -138,7 +138,7 @@ func (u *BaseApi) PolicyDel(ctx *gin.Context) {
 // @Produce json
 // @Param uuid path int true "policy UUID"
 // @Success 200 {object} dto.Response
-// @Router /policy/{uuid}/ [get]
+// @Router /policy/{uuid} [get]
 func (u *BaseApi) PolicyGet(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 	strategy, err := policyLogic.PolicyGet(uuid)
@@ -156,7 +156,7 @@ func (u *BaseApi) PolicyGet(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} dto.Response
-// @Router /policy/ [get]
+// @Router /policy [get]
 func (u *BaseApi) PolicyList(ctx *gin.Context) {
 	strategies, err := policyLogic.PolicyList()
 	if err != nil {

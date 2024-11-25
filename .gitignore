@@ -18,4 +18,6 @@
 
 # log 
 *.log
-cmd/server/conf/config.yaml
+
+# Dependency directories
+config.yaml

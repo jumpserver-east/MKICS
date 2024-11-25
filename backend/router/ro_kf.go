@@ -11,12 +11,11 @@ type KFRouter struct {
 }
 
 func (s *KFRouter) InitRouter(Router *gin.RouterGroup) {
-	// kfRouter := Router.Group("kf")
 	kfRouter := Router.Group("kf").Use(middleware.AuthRequired())
 	baseApi := v1.ApiGroupApp.BaseApi
 	{
-		kfRouter.GET("/", baseApi.KFList)
-		kfRouter.POST("/", baseApi.KFAdd)
+		kfRouter.GET("", baseApi.KFList)
+		kfRouter.POST("", baseApi.KFAdd)
 		kfRouter.GET("/:uuid", baseApi.KFGet)
 		kfRouter.PATCH("/:uuid", baseApi.KFUpdate)
 		kfRouter.DELETE("/:uuid", baseApi.KFDel)

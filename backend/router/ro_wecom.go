@@ -17,8 +17,9 @@ func (s *WecomRouter) InitRouter(Router *gin.RouterGroup) {
 		wecomRouter.GET("/callback", baseApi.WecomVerifyURL)
 		wecomRouter.POST("/callback", baseApi.WecomHandle)
 
-		wecomRouter.GET("/config", middleware.AuthRequired(), baseApi.WecomConfigAppGet)
-		wecomRouter.PATCH("/config", middleware.AuthRequired(), baseApi.WecomConfigAppUpdate)
+		wecomRouter.GET("/config", middleware.AuthRequired(), baseApi.WecomConfigList)
+		wecomRouter.GET("/config/:uuid", middleware.AuthRequired(), baseApi.WecomConfigGet)
+		wecomRouter.PATCH("/config/:uuid", middleware.AuthRequired(), baseApi.WecomConfigUpdate)
 
 		wecomRouter.GET("/receptionist/:kfid", middleware.AuthRequired(), baseApi.WecomReceptionistList)
 		wecomRouter.POST("/receptionist/", middleware.AuthRequired(), baseApi.WecomReceptionistAdd)

@@ -187,7 +187,7 @@ paths:
       summary: User login
       tags:
       - auth
-  /kf/:
+  /kf:
     get:
       consumes:
       - application/json
@@ -326,7 +326,7 @@ paths:
       summary: Update maxkb configuration
       tags:
       - maxkb_config
-  /policy/:
+  /policy:
     get:
       consumes:
       - application/json
@@ -383,6 +383,26 @@ paths:
       summary: Delete policy
       tags:
       - policy
+    get:
+      consumes:
+      - application/json
+      description: Get the policy information by UUID
+      parameters:
+      - description: policy UUID
+        in: path
+        name: uuid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Get policy
+      tags:
+      - policy
     patch:
       consumes:
       - application/json
@@ -409,28 +429,7 @@ paths:
       summary: Update policy
       tags:
       - policy
-  /policy/{uuid}/:
-    get:
-      consumes:
-      - application/json
-      description: Get the policy information by UUID
-      parameters:
-      - description: policy UUID
-        in: path
-        name: uuid
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.Response'
-      summary: Get policy
-      tags:
-      - policy
-  /staff/:
+  /staff:
     get:
       consumes:
       - application/json
@@ -604,6 +603,21 @@ paths:
       tags:
       - wecom_callback
   /wecom/config:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the current Wecom configuration
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current Wecom configuration
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: List Wecom configuration
+      tags:
+      - wecom_config
+  /wecom/config/{uuid}:
     get:
       consumes:
       - application/json

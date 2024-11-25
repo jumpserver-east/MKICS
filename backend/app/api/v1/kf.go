@@ -15,7 +15,7 @@ import (
 // @Produce json
 // @Param req body request.KF true "kf Information"
 // @Success 200 {object} dto.Response
-// @Router /kf/ [post]
+// @Router /kf [post]
 func (u *BaseApi) KFAdd(ctx *gin.Context) {
 	var req request.KF
 	var kfurl string
@@ -148,7 +148,7 @@ func (u *BaseApi) KFGet(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} dto.Response
-// @Router /kf/ [get]
+// @Router /kf [get]
 func (u *BaseApi) KFList(ctx *gin.Context) {
 	kfs, err := kFLogic.KFList()
 	if err != nil {

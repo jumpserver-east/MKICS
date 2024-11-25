@@ -11,12 +11,11 @@ type StaffRouter struct {
 }
 
 func (s *StaffRouter) InitRouter(Router *gin.RouterGroup) {
-	// staffRouter := Router.Group("staff")
 	staffRouter := Router.Group("staff").Use(middleware.AuthRequired())
 	baseApi := v1.ApiGroupApp.BaseApi
 	{
-		staffRouter.GET("/", baseApi.StaffList)
-		staffRouter.POST("/", baseApi.StaffAdd)
+		staffRouter.GET("", baseApi.StaffList)
+		staffRouter.POST("", baseApi.StaffAdd)
 		staffRouter.GET("/:uuid", baseApi.StaffGet)
 		staffRouter.PATCH("/:uuid", baseApi.StaffUpdate)
 		staffRouter.DELETE("/:uuid", baseApi.StaffDel)

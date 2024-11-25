@@ -15,7 +15,7 @@ import (
 // @Produce json
 // @Param req body request.Staff true "Staff Information"
 // @Success 200 {object} dto.Response
-// @Router /staff/ [post]
+// @Router /staff [post]
 func (u *BaseApi) StaffAdd(ctx *gin.Context) {
 	var req request.Staff
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -102,7 +102,7 @@ func (u *BaseApi) StaffGet(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} dto.Response
-// @Router /staff/ [get]
+// @Router /staff [get]
 func (u *BaseApi) StaffList(ctx *gin.Context) {
 	staffs, err := staffLogic.StaffList()
 	if err != nil {

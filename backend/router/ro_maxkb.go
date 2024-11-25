@@ -11,7 +11,6 @@ type MaxkbRouter struct {
 }
 
 func (s *MaxkbRouter) InitRouter(Router *gin.RouterGroup) {
-	// maxkbRouter := Router.Group("maxkb")
 	maxkbRouter := Router.Group("maxkb").Use(middleware.AuthRequired())
 	baseApi := v1.ApiGroupApp.BaseApi
 	{

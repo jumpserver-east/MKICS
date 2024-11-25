@@ -9,6 +9,7 @@ import (
 )
 
 type IWecomRepo interface {
+	List(opts ...DBOption) ([]model.WecomConfig, error)
 	Get(opts ...DBOption) (model.WecomConfig, error)
 	Update(ctx context.Context, conf *model.WecomConfig) error
 	WithType(typ string) DBOption
@@ -18,6 +19,18 @@ type WecomRepo struct{}
 
 func NewIWecomRepo() IWecomRepo {
 	return &WecomRepo{}
+}
+
+func (r *WecomRepo) List(opts ...DBOption) ([]model.WecomConfig, error) {
+	var config []model.WecomConfig
+	db := global.DB.Model(&model.WecomConfig{})
+	for _, opt := range opts {
+		db = opt(db)
+	}
+	if err := db.Find(&config).Error; err != nil {
+		return config, err
+	}
+	return config, nil
 }
 
 func (r *WecomRepo) Get(opts ...DBOption) (model.WecomConfig, error) {

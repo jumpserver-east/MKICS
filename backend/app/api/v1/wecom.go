@@ -10,14 +10,31 @@ import (
 )
 
 // @Tags wecom_config
-// @Summary Get Wecom configuration
+// @Summary List Wecom configuration
 // @Description Retrieve the current Wecom configuration
 // @Accept json
 // @Produce json
 // @Success 200 {object} dto.Response "Current Wecom configuration"
 // @Router /wecom/config [get]
-func (b *BaseApi) WecomConfigAppGet(ctx *gin.Context) {
-	conf, err := wecomLogic.ConfigAppGet()
+func (b *BaseApi) WecomConfigList(ctx *gin.Context) {
+	conf, err := wecomLogic.ConfigList()
+	if err != nil {
+		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		return
+	}
+	helper.SuccessWithData(ctx, conf)
+}
+
+// @Tags wecom_config
+// @Summary Get Wecom configuration
+// @Description Retrieve the current Wecom configuration
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.Response "Current Wecom configuration"
+// @Router /wecom/config/{uuid} [get]
+func (b *BaseApi) WecomConfigGet(ctx *gin.Context) {
+	uuid := ctx.Param("uuid")
+	conf, err := wecomLogic.ConfigGet(uuid)
 	if err != nil {
 		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
 		return
@@ -32,14 +49,15 @@ func (b *BaseApi) WecomConfigAppGet(ctx *gin.Context) {
 // @Produce json
 // @Param data body request.WecomConfigApp true "Wecom configuration data"
 // @Success 200 {object} dto.Response "Success response"
-// @Router /wecom/config [patch]
-func (b *BaseApi) WecomConfigAppUpdate(ctx *gin.Context) {
+// @Router /wecom/config/{uuid} [patch]
+func (b *BaseApi) WecomConfigUpdate(ctx *gin.Context) {
+	uuid := ctx.Param("uuid")
 	var req request.WecomConfigApp
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
 		return
 	}
-	if err := wecomLogic.ConfigAppUpdate(req); err != nil {
+	if err := wecomLogic.ConfigUpdate(uuid, req); err != nil {
 		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
 		return
 	}

@@ -26,8 +26,9 @@ type IWecomLogic interface {
 	VerifyURL(req dto.SignatureOptions) (string, error)
 	Handle(body []byte) error
 
-	ConfigAppUpdate(req request.WecomConfigApp) error
-	ConfigAppGet() (response.WecomConfigApp, error)
+	ConfigList() ([]response.WecomConfigApp, error)
+	ConfigUpdate(uuid string, req request.WecomConfigApp) error
+	ConfigGet(uuid string) (response.WecomConfigApp, error)
 
 	ReceptionistAdd(req request.ReceptionistOptions) error
 	ReceptionistDel(req request.ReceptionistOptions) error
@@ -42,8 +43,8 @@ func NewIWecomLogic() IWecomLogic {
 	return &WecomLogic{}
 }
 
-func (u *WecomLogic) ConfigAppUpdate(req request.WecomConfigApp) error {
-	conf, err := wecomRepo.Get(wecomRepo.WithType("app"))
+func (u *WecomLogic) ConfigUpdate(uuid string, req request.WecomConfigApp) error {
+	conf, err := wecomRepo.Get(commonRepo.WithByUUID(uuid))
 	if err != nil {
 		global.ZAPLOG.Error("failed to get Wecom config", zap.Error(err))
 		return err
@@ -72,9 +73,9 @@ func (u *WecomLogic) ConfigAppUpdate(req request.WecomConfigApp) error {
 	return nil
 }
 
-func (u *WecomLogic) ConfigAppGet() (response.WecomConfigApp, error) {
+func (u *WecomLogic) ConfigGet(uuid string) (response.WecomConfigApp, error) {
 	var res response.WecomConfigApp
-	conf, err := wecomRepo.Get(wecomRepo.WithType("app"))
+	conf, err := wecomRepo.Get(commonRepo.WithByUUID(uuid))
 	if err != nil {
 		global.ZAPLOG.Error("failed to get Wecom config", zap.Error(err))
 		return res, err
@@ -86,6 +87,26 @@ func (u *WecomLogic) ConfigAppGet() (response.WecomConfigApp, error) {
 	res.EncodingAESKey = conf.EncodingAESKey
 	res.AgentID = conf.AgentID
 	return res, nil
+}
+
+func (u *WecomLogic) ConfigList() ([]response.WecomConfigApp, error) {
+	var resp []response.WecomConfigApp
+	configs, err := wecomRepo.List()
+	if err != nil {
+		global.ZAPLOG.Error("failed to get Wecom config", zap.Error(err))
+		return resp, err
+	}
+	for _, config := range configs {
+		var res response.WecomConfigApp
+		res.UUID = config.UUID
+		res.Type = config.Type
+		res.CorpID = config.CorpID
+		res.Token = config.Token
+		res.EncodingAESKey = config.EncodingAESKey
+		res.AgentID = config.AgentID
+		resp = append(resp, res)
+	}
+	return resp, nil
 }
 
 func (u *WecomLogic) VerifyURL(req dto.SignatureOptions) (string, error) {

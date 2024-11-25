@@ -50,7 +50,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kf/": {
+        "/kf": {
             "get": {
                 "description": "Retrieve a list of all kf",
                 "consumes": [
@@ -261,7 +261,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/policy/": {
+        "/policy": {
             "get": {
                 "description": "Retrieve a list of all policy",
                 "consumes": [
@@ -317,6 +317,36 @@ const docTemplate = `{
             }
         },
         "/policy/{uuid}": {
+            "get": {
+                "description": "Get the policy information by UUID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "policy"
+                ],
+                "summary": "Get policy",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "policy UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Delete the policy by UUID",
                 "consumes": [
@@ -387,39 +417,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/policy/{uuid}/": {
-            "get": {
-                "description": "Get the policy information by UUID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "policy"
-                ],
-                "summary": "Get policy",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "policy UUID",
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/staff/": {
+        "/staff": {
             "get": {
                 "description": "Retrieve a list of all staff members",
                 "consumes": [
@@ -680,6 +678,29 @@ const docTemplate = `{
             }
         },
         "/wecom/config": {
+            "get": {
+                "description": "Retrieve the current Wecom configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wecom_config"
+                ],
+                "summary": "List Wecom configuration",
+                "responses": {
+                    "200": {
+                        "description": "Current Wecom configuration",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/wecom/config/{uuid}": {
             "get": {
                 "description": "Retrieve the current Wecom configuration",
                 "consumes": [
