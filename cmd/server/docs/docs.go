@@ -573,7 +573,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/wecom/account/": {
+        "/wecom/account": {
             "get": {
                 "description": "account list",
                 "consumes": [
@@ -755,7 +755,31 @@ const docTemplate = `{
                 }
             }
         },
-        "/wecom/receptionist/": {
+        "/wecom/receptionist/{kfid}": {
+            "get": {
+                "description": "receptionist list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wecom_receptionist"
+                ],
+                "summary": "WeCom receptionist list",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/client.ReceptionistList"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "receptionist add",
                 "consumes": [
@@ -811,32 +835,6 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
-                    }
-                }
-            }
-        },
-        "/wecom/receptionist/{kfid}": {
-            "get": {
-                "description": "receptionist list",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "wecom_receptionist"
-                ],
-                "summary": "WeCom receptionist list",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/client.ReceptionistList"
-                            }
-                        }
                     }
                 }
             }

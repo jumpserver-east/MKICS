@@ -116,13 +116,15 @@ func (b *BaseApi) WecomHandle(ctx *gin.Context) {
 // @Produce json
 // @Param data body request.ReceptionistOptions true "Wecom configuration data"
 // @Success 200
-// @Router /wecom/receptionist/ [post]
+// @Router /wecom/receptionist/{kfid} [post]
 func (b *BaseApi) WecomReceptionistAdd(ctx *gin.Context) {
+	kfid := ctx.Param("kfid")
 	var options request.ReceptionistOptions
 	if err := ctx.ShouldBindJSON(&options); err != nil {
 		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
 		return
 	}
+	options.OpenKFID = kfid
 	if err := wecomLogic.ReceptionistAdd(options); err != nil {
 		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
 		return
@@ -137,14 +139,16 @@ func (b *BaseApi) WecomReceptionistAdd(ctx *gin.Context) {
 // @Produce json
 // @Param data body request.ReceptionistOptions true "Wecom configuration data"
 // @Success 200
-// @Router /wecom/receptionist/ [delete]
+// @Router /wecom/receptionist/{kfid} [delete]
 func (b *BaseApi) WecomReceptionistDel(ctx *gin.Context) {
-	var req request.ReceptionistOptions
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	kfid := ctx.Param("kfid")
+	var options request.ReceptionistOptions
+	if err := ctx.ShouldBindJSON(&options); err != nil {
 		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
 		return
 	}
-	if err := wecomLogic.ReceptionistDel(req); err != nil {
+	options.OpenKFID = kfid
+	if err := wecomLogic.ReceptionistDel(options); err != nil {
 		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
 		return
 	}
@@ -174,7 +178,7 @@ func (b *BaseApi) WecomReceptionistList(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} []client.AccountInfoSchema
-// @Router /wecom/account/ [get]
+// @Router /wecom/account [get]
 func (b *BaseApi) WecomAccountList(ctx *gin.Context) {
 	list, err := wecomLogic.AccountList()
 	if err != nil {

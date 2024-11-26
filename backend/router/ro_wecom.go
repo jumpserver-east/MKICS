@@ -22,10 +22,10 @@ func (s *WecomRouter) InitRouter(Router *gin.RouterGroup) {
 		wecomRouter.PATCH("/config/:uuid", middleware.AuthRequired(), baseApi.WecomConfigUpdate)
 
 		wecomRouter.GET("/receptionist/:kfid", middleware.AuthRequired(), baseApi.WecomReceptionistList)
-		wecomRouter.POST("/receptionist/", middleware.AuthRequired(), baseApi.WecomReceptionistAdd)
-		wecomRouter.DELETE("/receptionist/", middleware.AuthRequired(), baseApi.WecomReceptionistDel)
+		wecomRouter.POST("/receptionist/:kfid", middleware.AuthRequired(), baseApi.WecomReceptionistAdd)
+		wecomRouter.DELETE("/receptionist/:kfid", middleware.AuthRequired(), baseApi.WecomReceptionistDel)
 
-		wecomRouter.GET("/account/", middleware.AuthRequired(), baseApi.WecomAccountList)
+		wecomRouter.GET("/account", middleware.AuthRequired(), baseApi.WecomAccountList)
 		wecomRouter.GET("/account/:kfid", middleware.AuthRequired(), baseApi.WecomAddContactWay)
 	}
 }
