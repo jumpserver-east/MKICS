@@ -4,6 +4,19 @@
 # 部署
 本项目由 go 语言开发 go version go1.23.2
 
+技术栈
+- gin
+- gorm
+- swagger
+- zap
+- viper
+- cobra
+- jwt
+- uuid
+- wechatsdk
+- go-json
+- validator
+
 配置文件例，cmd\server\conf\config-example.yaml
 
 部署 Mysql>= 5.7 utf8mb4，Redis>= 6.0
@@ -25,10 +38,44 @@ swagger 页面：http://127.0.0.1:24916/swagger/index.html
 # 使用
 企微后台创建自建应用对接本服务，开放微信客服 api 权限给自建应用并创建客服
 
-暂无前端，接口调用以配置使用
+管理后台，前端 frontend 文件夹中
+node -v v22.11.0
+
+技术栈
+- vue3
+- vite
+- pinia
+- sass
+- vue-router
+- vueuse
+- unocss
+- element-plus
+- dayjs
+- js-cookie
+- lodash-es
+- native-lodash
+- nprogress
+- git hooks
+- commitlint
+- typescript
+- eslint
+- prettier
+
+运行前端
+
+cd frontend 
+
+yarn install
+
+yarn dev 启动开发环境
+
+访问
+
+http://127.0.0.1:5173
 
 # 展示
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
-![alt text](image-3.png)
+![alt text](docs/frontend-1.png)
+![alt text](docs/swagger.png)
+![alt text](docs/image-3.png)
+![alt text](docs/image-1.png)
+![alt text](docs/image-2.png)
