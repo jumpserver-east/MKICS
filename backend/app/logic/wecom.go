@@ -407,16 +407,22 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 			global.ZAPLOG.Info("录入客户信息:", zap.String("khid", msginfo.KHID))
 		}
 		if khinfo.StaffID != "" {
-			isStaffWork, err := isStaffWorkByStaffID(khinfo.StaffID)
-			if err != nil {
-				return err
-			}
-			if isStaffWork {
-				global.ZAPLOG.Info("选出的客服", zap.String("StaffID", khinfo.StaffID))
-				return u.handleSuccessfulTransfer(msginfo, khinfo.StaffID, kfinfo)
+			for _, staffinfo := range kfinfo.Staffs {
+				if staffinfo.StaffID == khinfo.StaffID {
+					isStaffWork, err := isStaffWorkByStaffID(khinfo.StaffID)
+					if err != nil {
+						return err
+					}
+					if isStaffWork {
+						global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", khinfo.StaffID))
+						return u.handleSuccessfulTransfer(msginfo, khinfo.StaffID, kfinfo)
+					}
+				} else {
+					global.ZAPLOG.Info("该接待人员不在客服应用中", zap.String("KFName", kfinfo.KFName))
+				}
 			}
 		}
-		global.ZAPLOG.Info("该客户没有上一次接待人员", zap.String("KHID", msginfo.KHID))
+		global.ZAPLOG.Info("该客户无法应用上一次接待人员", zap.String("KHID", msginfo.KHID))
 	}
 	switch kfinfo.ReceiveRule {
 	case 1:
