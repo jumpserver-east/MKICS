@@ -16,7 +16,7 @@ export const useSearchStore = defineStore('search', () => {
     if (!searchId) {
       console.warn('当前路径无搜索配置')
       searchReady.value = true
-      return false
+      return true
     }
   
     searchList.value = searchId

@@ -47,14 +47,6 @@ const searchConfig: Record<string, ISearchItem[]> = {
     //   hint: '请输入策略名称'
     // }
   ],
-  '/wecom/account/details/wkUA7uPQAACHK7x6GIm9buxOZe1BAXsg': [
-    // {
-    //   id: 'policy_name_text',
-    //   name: '策略名称',
-    //   type: 'text',
-    //   hint: '请输入策略名称'
-    // }
-  ],
   '/user': [
     {
       id: 'user_name_text',
