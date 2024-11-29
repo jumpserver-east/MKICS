@@ -30,8 +30,8 @@ type IWecomLogic interface {
 	ConfigUpdate(uuid string, req request.WecomConfigApp) error
 	ConfigGet(uuid string) (response.WecomConfigApp, error)
 
-	ReceptionistAdd(req request.ReceptionistOptions) error
-	ReceptionistDel(req request.ReceptionistOptions) error
+	ReceptionistAdd(kfid string, req request.ReceptionistOptions) error
+	ReceptionistDel(kfid string, req request.ReceptionistOptions) error
 	ReceptionistList(kfid string) ([]wecomclient.ReceptionistList, error)
 	CheckReceptionist(stafflist []string, receptionistlist []wecomclient.ReceptionistList) error
 
@@ -149,12 +149,12 @@ func (u *WecomLogic) Handle(body []byte) error {
 	return u.processMessage(msginfo)
 }
 
-func (u *WecomLogic) ReceptionistAdd(req request.ReceptionistOptions) error {
+func (u *WecomLogic) ReceptionistAdd(kfid string, req request.ReceptionistOptions) error {
 	if err := u.initializeWecomClient(); err != nil {
 		return err
 	}
 	err := u.wecomkf.ReceptionistAdd(wecomclient.ReceptionistOptions{
-		OpenKFID:   req.OpenKFID,
+		OpenKFID:   kfid,
 		UserIDList: req.UserIDList,
 	})
 	if err != nil {
@@ -163,12 +163,12 @@ func (u *WecomLogic) ReceptionistAdd(req request.ReceptionistOptions) error {
 	return nil
 }
 
-func (u *WecomLogic) ReceptionistDel(req request.ReceptionistOptions) error {
+func (u *WecomLogic) ReceptionistDel(kfid string, req request.ReceptionistOptions) error {
 	if err := u.initializeWecomClient(); err != nil {
 		return err
 	}
 	err := u.wecomkf.ReceptionistDel(wecomclient.ReceptionistOptions{
-		OpenKFID:   req.OpenKFID,
+		OpenKFID:   kfid,
 		UserIDList: req.UserIDList,
 	})
 	if err != nil {
@@ -417,10 +417,9 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 						global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", khinfo.StaffID))
 						return u.handleSuccessfulTransfer(msginfo, khinfo.StaffID, kfinfo)
 					}
-				} else {
-					global.ZAPLOG.Info("该接待人员不在客服应用中", zap.String("KFName", kfinfo.KFName))
 				}
 			}
+			global.ZAPLOG.Info("该接待人员不在客服应用中", zap.String("KFName", kfinfo.KFName))
 		}
 		global.ZAPLOG.Info("该客户无法应用上一次接待人员", zap.String("KHID", msginfo.KHID))
 	}

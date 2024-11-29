@@ -8,6 +8,5 @@ type WecomConfigApp struct {
 }
 
 type ReceptionistOptions struct {
-	OpenKFID   string   `json:"open_kfid"`
 	UserIDList []string `json:"userid_list"`
 }

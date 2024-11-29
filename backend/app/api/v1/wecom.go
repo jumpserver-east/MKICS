@@ -124,8 +124,7 @@ func (b *BaseApi) WecomReceptionistAdd(ctx *gin.Context) {
 		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
 		return
 	}
-	options.OpenKFID = kfid
-	if err := wecomLogic.ReceptionistAdd(options); err != nil {
+	if err := wecomLogic.ReceptionistAdd(kfid, options); err != nil {
 		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
 		return
 	}
@@ -147,8 +146,7 @@ func (b *BaseApi) WecomReceptionistDel(ctx *gin.Context) {
 		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
 		return
 	}
-	options.OpenKFID = kfid
-	if err := wecomLogic.ReceptionistDel(options); err != nil {
+	if err := wecomLogic.ReceptionistDel(kfid, options); err != nil {
 		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
 		return
 	}
