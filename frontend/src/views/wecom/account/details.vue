@@ -19,23 +19,31 @@
             <!-- 表格顶部按钮 -->
             <template #table-top>
                 <el-button type="primary" @click="handleAdd">添加</el-button>
+                <div v-if="addContactWayUrl" class="add-contact-way-url">
+                    客服地址:<a :href="addContactWayUrl" target="_blank" class="link-button">
+                        {{ addContactWayUrl }}
+                    </a>
+                </div>
             </template>
         </o-table>
     </div>
 </template>
 <script lang="ts" setup>
 import { Api } from '@/api/common/enum'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { usekfidDelete } from '@/hooks'
 import type { ITableConfig, TableInstance } from '@/types'
 import { useRoute } from 'vue-router';
 import { createReceptionistApi, deleteReceptionistApi } from '@/api/wecom/receptionist';
 import type { IReceptionist } from '@/api/wecom/model/receptionistModel'
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { getAccountAddContactWayApi } from '@/api/wecom/account';
 
 const route = useRoute()
 const tableRef = ref<TableInstance>()
 const kfid = route.params.kfid as string
+const addContactWayUrl = ref<string | null>(null)
+
 // 表格配置
 const tableConfig: ITableConfig = {
     api: `${Api.wecomreceptionist}/${kfid}`,
@@ -93,4 +101,17 @@ const handleAdd = () => {
         ElMessage.info('已取消添加');
     });
 }
+const fetchAddContactWayUrl = async () => {
+    try {
+        const response = await getAccountAddContactWayApi(kfid);
+        const url = new URL(response.data);
+        addContactWayUrl.value = url.origin + url.pathname;
+    } catch (error) {
+    }
+}
+
+// 组件挂载时调用
+onMounted(() => {
+    fetchAddContactWayUrl();
+})
 </script>
