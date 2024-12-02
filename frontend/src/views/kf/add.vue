@@ -1,87 +1,82 @@
 <template>
     <o-form-wrap title="客服管理" @confirm="onConfirm">
         <el-form ref="kfForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
-            <!-- 客服名称 -->
             <el-form-item label="客服名称：" prop="kfname">
                 <el-input v-model="formData.kfname" placeholder="请输入客服名称" />
             </el-form-item>
 
-            <!-- 客服 ID -->
             <el-form-item label="客服 ID：" prop="kfid">
                 <el-input v-model="formData.kfid" placeholder="请输入客服 ID" />
             </el-form-item>
 
-            <!-- 客服平台 -->
             <el-form-item label="客服平台：" prop="kfplatform">
                 <el-input v-model="formData.kfplatform" placeholder="请输入客服平台" />
             </el-form-item>
 
-            <!-- 机器人 ID -->
             <el-form-item label="机器人 ID：" prop="botid">
                 <el-input v-model="formData.botid" placeholder="请输入机器人 ID" />
             </el-form-item>
 
-            <!-- 机器人平台 -->
             <el-form-item label="机器人平台：" prop="botplatform">
                 <el-input v-model="formData.botplatform" placeholder="请输入机器人平台" />
             </el-form-item>
 
-            <!-- 状态 -->
-            <el-form-item label="状态：" prop="status">
-                <el-input-number v-model="formData.status" placeholder="请输入状态" />
+            <el-form-item label="接待方式：" prop="status">
+                <el-radio-group v-model="formData.status">
+                    <el-radio :label="1">机器人可转人工</el-radio>
+                    <el-radio :label="2">仅机器人</el-radio>
+                    <el-radio :label="3">仅人工</el-radio>
+                </el-radio-group>
             </el-form-item>
 
-            <!-- 接待优先级 -->
-            <el-form-item label="接待优先级：" prop="receive_priority">
-                <el-input-number v-model="formData.receive_priority" placeholder="请输入接待优先级" />
+
+            <el-form-item label="是否优先上一位接待人员：" prop="receive_priority">
+                <el-radio-group v-model="formData.receive_priority">
+                    <el-radio :label="0">不优先</el-radio>
+                    <el-radio :label="1">优先</el-radio>
+                </el-radio-group>
             </el-form-item>
 
-            <!-- 接待规则 -->
             <el-form-item label="接待规则：" prop="receive_rule">
-                <el-input-number v-model="formData.receive_rule" placeholder="请输入接待规则" />
+                <el-radio-group v-model="formData.receive_rule">
+                    <el-radio :label="1">轮流接待</el-radio>
+                    <el-radio :label="2">空闲接待</el-radio>
+                </el-radio-group>
             </el-form-item>
 
-            <!-- 会话超时 -->
+
             <el-form-item label="会话超时（秒）：" prop="chat_timeout">
                 <el-input-number v-model="formData.chat_timeout" placeholder="请输入会话超时时间" />
             </el-form-item>
 
-            <!-- 机器人超时 -->
             <el-form-item label="机器人超时（秒）：" prop="bot_timeout">
                 <el-input-number v-model="formData.bot_timeout" placeholder="请输入机器人超时时间" />
             </el-form-item>
 
-            <!-- 机器人超时消息 -->
             <el-form-item label="机器人超时消息：" prop="bot_timeout_msg">
                 <el-input v-model="formData.bot_timeout_msg" placeholder="请输入机器人超时消息" />
             </el-form-item>
 
-            <!-- 机器人欢迎消息 -->
             <el-form-item label="机器人欢迎消息（菜单）：" prop="bot_welcome_msg">
                 <el-input type="textarea" :rows="9" v-model="formData.bot_welcome_msg" placeholder="请输入机器人欢迎消息" />
             </el-form-item>
 
-            <!-- 接待人员欢迎消息 -->
             <el-form-item label="接待人员欢迎消息：" prop="staff_welcome_msg">
                 <el-input v-model="formData.staff_welcome_msg" placeholder="请输入接待人员欢迎消息" />
             </el-form-item>
 
-            <!-- 无人值守消息 -->
             <el-form-item label="无人值守消息：" prop="unmanned_msg">
                 <el-input v-model="formData.unmanned_msg" placeholder="请输入无人值守消息" />
             </el-form-item>
 
-            <!-- 会话结束消息 -->
             <el-form-item label="会话结束消息（菜单）：" prop="chatend_msg">
                 <el-input type="textarea" :rows="3" v-model="formData.chatend_msg" placeholder="请输入会话结束消息" />
             </el-form-item>
 
-            <!-- 转接关键字 -->
             <el-form-item label="转人工关键字：" prop="transfer_keywords">
                 <el-input v-model="formData.transfer_keywords" placeholder="请输入转接关键字，用逗号分隔" />
             </el-form-item>
 
-            <!-- 接待人员列表 -->
             <el-form-item label="接待人员列表：" prop="staff_list">
                 <el-select v-model="formData.staff_list" multiple placeholder="请选择接待人员" :options="staffOptions">
                     <el-option v-for="staff in staffOptions" :key="staff.uuid" :label="staff.staffname"
