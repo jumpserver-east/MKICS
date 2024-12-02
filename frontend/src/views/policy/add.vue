@@ -1,5 +1,5 @@
 <template>
-  <o-form-wrap title="策略管理" @confirm="onConfirm">
+  <o-form-wrap title="工作策略管理" @confirm="onConfirm">
     <el-form ref="ruleForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
       <el-form-item label="策略名称：" prop="policyname">
         <el-input v-model="formData.policyname" placeholder="请输入策略名称" />
@@ -13,12 +13,20 @@
         <el-select v-model="formData.repeat" placeholder="请选择重复策略">
           <el-option v-for="option in repeatOptions" :key="option.value" :value="option.value" :label="option.label" />
         </el-select>
-
       </el-form-item>
 
       <!-- 只有当 repeat === 1 时，显示 week 字段 -->
       <el-form-item v-if="formData.repeat === 1" label="工作日：" prop="week">
-        <el-input v-model="formData.week" placeholder="请输入工作日标记（如：1111100）" />
+        <!-- 使用CheckboxGroup显示工作日选择框 -->
+        <el-checkbox-group v-model="selectedDays" @change="updateWeek">
+          <el-checkbox label="0" name="day">周日</el-checkbox>
+          <el-checkbox label="1" name="day">周一</el-checkbox>
+          <el-checkbox label="2" name="day">周二</el-checkbox>
+          <el-checkbox label="3" name="day">周三</el-checkbox>
+          <el-checkbox label="4" name="day">周四</el-checkbox>
+          <el-checkbox label="5" name="day">周五</el-checkbox>
+          <el-checkbox label="6" name="day">周六</el-checkbox>
+        </el-checkbox-group>
       </el-form-item>
 
       <el-form-item label="工作时间：" prop="work_times">
@@ -57,7 +65,7 @@ const formData = reactive<IPolicy>({
   uuid: '',
   policyname: '',
   max_count: 100,
-  repeat: 1, // 默认值
+  repeat: 1,
   week: '',
   work_times: [{ start_time: '', end_time: '' }]
 })
@@ -68,38 +76,32 @@ interface RepeatOption {
 }
 
 const repeatOptions: RepeatOption[] = [
-  { value: 1, label: '自定义[周一至周天]' },
+  { value: 1, label: '自定义工作日' },
   { value: 2, label: '每天' },
   { value: 3, label: '周一至周五' },
   { value: 4, label: '法定工作日（跳过法定节假日）' },
   { value: 5, label: '法定节假日（跳过法定工作日）' }
 ]
 
-
 const formRules = reactive<FormRules>({
   policyname: [{ required: true, message: '请输入策略名称', trigger: 'blur' }],
   max_count: [{ required: true, message: '请输入最大接待数量', trigger: 'blur' }],
   repeat: [{ required: true, message: '请选择重复策略', trigger: 'change' }],
-  week: [
-    {
-      required: true,
-      message: '当重复策略为自定义时，工作日必填',
-      trigger: 'blur',
-      validator: (rule, value, callback) => {
-        if (formData.repeat === 1 && !/^[01]{7}$/.test(value)) {
-          callback(new Error('请输入有效的工作日标记（如：1111100）'))
-        } else {
-          callback()
-        }
-      }
-    }
-  ],
+  week: [{ required: true, message: '当重复策略为自定义时，工作日必填', trigger: 'blur' }],
   work_times: [{ required: true, type: 'array', min: 1, message: '请添加至少一个工作时间', trigger: 'blur' }]
 })
 
 const policyInfo = async () => {
   const { data } = await getPolicyApi(uuid)
   Object.assign(formData, data)
+
+  // 根据 week 标记更新 selectedDays
+  if (formData.week) {
+    selectedDays.value = formData.week
+      .split('')
+      .map((day, index) => (day === '1' ? String(index) : null))
+      .filter(Boolean) as string[]  // 将勾选的工作日的索引添加到 selectedDays 中
+  }
 }
 
 const onConfirm = (loading: TLoading) => {
@@ -138,6 +140,16 @@ const removeWorkTime = async (index: number) => {
     formData.work_times?.splice(index, 1)
     ElMessage.success('工作时间已删除')
   } catch { }
+}
+
+// 当用户勾选工作日时，更新week字段
+const selectedDays = ref<string[]>([])  // 用于保存勾选的工作日
+
+const updateWeek = () => {
+  // 将勾选的工作日按顺序拼接成一个字符串
+  formData.week = Array(7).fill('0').map((_, index) =>
+    selectedDays.value.includes(String(index)) ? '1' : '0'
+  ).join('')
 }
 
 onBeforeMount(() => {
