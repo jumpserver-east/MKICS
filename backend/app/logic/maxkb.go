@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -182,7 +183,6 @@ func (m *MaxkbLogic) getChatIdByKH(khid string) (string, error) {
 func parseResponse(resp []byte) (string, error) {
 	contentAll := ""
 	jsonStrList := strings.Split(string(resp), "\n")
-	firstMessage := true
 	for _, jsonStr := range jsonStrList {
 		if strings.TrimSpace(jsonStr) != "" {
 			splitData := strings.SplitN(jsonStr, ": ", 2)
@@ -195,17 +195,31 @@ func parseResponse(resp []byte) (string, error) {
 				if !ok {
 					return "", fmt.Errorf("invalid content format")
 				}
-				if firstMessage {
-					content = strings.TrimPrefix(content, "\n")
-					firstMessage = false
-				}
-				if content != "" && content != "\n" {
+				if content != "" {
 					contentAll += content
 				}
 			}
 		}
 	}
+	contentAll = cleanContent(contentAll)
 	return contentAll, nil
+}
+
+func cleanContent(content string) string {
+	re := regexp.MustCompile(`\[(.*?)\]\((.*?)\)`)
+	content = re.ReplaceAllString(content, "$2")
+
+	content = regexp.MustCompile(`\#\s*`).ReplaceAllString(content, "")
+	content = regexp.MustCompile(`\*\*|\_\_`).ReplaceAllString(content, "")
+	content = regexp.MustCompile(`\*|\_`).ReplaceAllString(content, "")
+	content = regexp.MustCompile(`\~\~`).ReplaceAllString(content, "")
+	content = regexp.MustCompile("`{1,3}").ReplaceAllString(content, "")
+
+	content = strings.ReplaceAll(content, "\n\n", "\n")
+	reNewline := regexp.MustCompile(`\n+`)
+	content = reNewline.ReplaceAllString(content, "\n")
+
+	return content
 }
 
 func makeRequest(method, url string, headers map[string]string, body *bytes.Buffer) ([]byte, error) {
