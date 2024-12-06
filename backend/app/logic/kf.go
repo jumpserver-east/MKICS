@@ -45,6 +45,7 @@ func (u *KFLogic) KFAdd(req request.KF) error {
 		ChatTimeout:      req.ChatTimeout,
 		BotTimeout:       req.BotTimeout,
 		BotTimeoutMsg:    req.BotTimeoutMsg,
+		BotPrompt:        req.BotPrompt,
 		BotWelcomeMsg:    req.BotWelcomeMsg,
 		StaffWelcomeMsg:  req.StaffWelcomeMsg,
 		UnmannedMsg:      req.UnmannedMsg,
@@ -89,6 +90,7 @@ func (u *KFLogic) KFUpdate(uuid string, req request.KF) error {
 	kf.ChatTimeout = req.ChatTimeout
 	kf.BotTimeout = req.BotTimeout
 	kf.BotTimeoutMsg = req.BotTimeoutMsg
+	kf.BotPrompt = req.BotPrompt
 	kf.BotWelcomeMsg = req.BotWelcomeMsg
 	kf.StaffWelcomeMsg = req.StaffWelcomeMsg
 	kf.UnmannedMsg = req.UnmannedMsg
@@ -170,6 +172,7 @@ func (u *KFLogic) KFGet(uuid string) (response.KF, error) {
 	kfres.ChatTimeout = kf.ChatTimeout
 	kfres.BotTimeout = kf.BotTimeout
 	kfres.BotTimeoutMsg = kf.BotTimeoutMsg
+	kfres.BotPrompt = kf.BotPrompt
 	kfres.BotWelcomeMsg = kf.BotWelcomeMsg
 	kfres.StaffWelcomeMsg = kf.StaffWelcomeMsg
 	kfres.UnmannedMsg = kf.UnmannedMsg
@@ -228,6 +231,7 @@ func (u *KFLogic) KFList() ([]response.KF, error) {
 		kfres.ChatTimeout = kf.ChatTimeout
 		kfres.BotTimeout = kf.BotTimeout
 		kfres.BotTimeoutMsg = kf.BotTimeoutMsg
+		kfres.BotPrompt = kf.BotPrompt
 		kfres.BotWelcomeMsg = kf.BotWelcomeMsg
 		kfres.StaffWelcomeMsg = kf.StaffWelcomeMsg
 		kfres.UnmannedMsg = kf.UnmannedMsg

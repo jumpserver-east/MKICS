@@ -494,7 +494,8 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 	resultChan := make(chan string)
 	errorChan := make(chan error)
 	go func() {
-		fullContent, err := maxkbLogic.ChatMessage(chatid, msginfo.Message)
+		message := msginfo.Message + kfinfo.BotPrompt
+		fullContent, err := maxkbLogic.ChatMessage(chatid, message)
 		if err != nil {
 			errorChan <- err
 		} else {

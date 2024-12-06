@@ -13,6 +13,7 @@ type KF struct {
 	ChatTimeout      int     `gorm:"column:chat_timeout;" json:"chat_timeout"`                             // 会话超时时间
 	BotTimeout       int     `gorm:"column:bot_timeout;" json:"bot_timeout"`                               // 机器人超时时间
 	BotTimeoutMsg    string  `gorm:"column:bot_timeout_msg;type:varchar(255);" json:"bot_timeout_msg"`     // 机器人超时提示语
+	BotPrompt        string  `gorm:"column:bot_prompt;type:varchar(255);" json:"bot_prompt"`               // 机器人提示词（客户输入的问题均会附加在文本末尾）
 	BotWelcomeMsg    string  `gorm:"column:bot_welcome_msg;type:varchar(255);" json:"botwelcome_msg"`      // 机器人的欢迎语
 	StaffWelcomeMsg  string  `gorm:"column:staff_welcome_msg;type:varchar(255);" json:"staff_welcome_msg"` // 转人工的欢迎语
 	UnmannedMsg      string  `gorm:"column:unmanned_msg;type:varchar(255);" json:"unmanned_msg"`           // 无人值守语
