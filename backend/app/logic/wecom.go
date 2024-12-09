@@ -436,10 +436,10 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 		global.ZAPLOG.Info("该客户无法应用上一次接待人员", zap.String("KHID", msginfo.KHID))
 	}
 	switch kfinfo.ReceiveRule {
-	case 1:
+	case constant.KFReceiveRuleRoundRobin:
 		global.ZAPLOG.Info("轮流接待模式", zap.String("KFName", kfinfo.KFName))
 		global.ZAPLOG.Info("未实现功能")
-	case 2:
+	case constant.KFReceiveRuleIdle:
 		global.ZAPLOG.Info("空闲接待模式", zap.String("KFName", kfinfo.KFName))
 		var staffIDs []string
 		for _, staffinfo := range kfinfo.Staffs {
@@ -473,7 +473,7 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 
 func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
 	switch kfinfo.Status {
-	case 1:
+	case constant.KFStatusRobotToHuman:
 		keywords := strings.Split(kfinfo.TransferKeywords, ";")
 		for _, keyword := range keywords {
 			if msginfo.Message == keyword {
@@ -482,10 +482,10 @@ func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo, kfinfo mo
 			}
 		}
 		return u.handleBotReply(msginfo, kfinfo)
-	case 2:
+	case constant.KFStatusOnlyRobot:
 		global.ZAPLOG.Info("客服为仅机器人模式，无法转接人工", zap.String("KFName", kfinfo.KFName))
 		return u.handleBotReply(msginfo, kfinfo)
-	case 3:
+	case constant.KFStatusOnlyHuman:
 		global.ZAPLOG.Info("客服为仅人工模式，机器人无法回复消息", zap.String("KFName", kfinfo.KFName))
 		return nil
 	default:
