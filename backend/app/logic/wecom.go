@@ -272,10 +272,18 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 	switch msginfo.MessageType {
 	case wecomclient.WecomMsgTypeEnterSession:
 		if msginfo.Credential != "" {
-			options := parseMenuTextToOptions(kfinfo.BotWelcomeMsg, msginfo.Credential)
-			return u.wecomkf.SendMenuMsgOnEvent(options)
+			return u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
+				Credential:     msginfo.Credential,
+				MenuMsgOptions: parseMenuText(kfinfo.BotWelcomeMsg),
+			})
 		}
-		return nil
+		if msginfo.ChatState == wecomclient.SessionStatusHandled {
+			return u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+				KFID:           msginfo.KFID,
+				KHID:           msginfo.KHID,
+				MenuMsgOptions: parseMenuText(kfinfo.BotWelcomeMsg),
+			})
+		}
 	case wecomclient.WecomMsgTypeText:
 		switch msginfo.ChatState {
 		case wecomclient.SessionStatusHandled:
@@ -374,8 +382,10 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, khi
 		return
 	}
 	global.ZAPLOG.Info("会话超时，已变更状态")
-	options := parseMenuTextToOptions(kfinfo.ChatendMsg, credential)
-	if err := u.wecomkf.SendMenuMsgOnEvent(options); err != nil {
+	if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
+		Credential:     credential,
+		MenuMsgOptions: parseMenuText(kfinfo.BotWelcomeMsg),
+	}); err != nil {
 		global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
 	}
 	if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
@@ -548,7 +558,7 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 	}
 }
 
-func parseMenuTextToOptions(text, credential string) wecomclient.SendMenuMsgOnEventOptions {
+func parseMenuText(text string) wecomclient.MenuMsgOptions {
 	lines := strings.Split(text, "\n")
 	headContent := ""
 	tailContent := ""
@@ -627,7 +637,7 @@ func parseMenuTextToOptions(text, credential string) wecomclient.SendMenuMsgOnEv
 			}
 		}
 	}
-	var resp wecomclient.SendMenuMsgOnEventOptions
+	var resp wecomclient.MenuMsgOptions
 	if headContent != "" {
 		resp.HeadContent = headContent
 	}
@@ -637,6 +647,5 @@ func parseMenuTextToOptions(text, credential string) wecomclient.SendMenuMsgOnEv
 	if tailContent != "" {
 		resp.TailContent = tailContent
 	}
-	resp.Credential = credential
 	return resp
 }

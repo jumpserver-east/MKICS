@@ -40,16 +40,26 @@ type SendTextMsgOptions struct {
 	Message string `json:"message"`
 }
 
+type SendMenuMsgOptions struct {
+	KFID string `json:"kfid"`
+	KHID string `json:"khid"`
+	MenuMsgOptions
+}
+
+type MenuMsgOptions struct {
+	HeadContent string `json:"headContent"`
+	MenuList    []MenuItem
+	TailContent string `json:"tailContent"`
+}
+
 type SendTextMsgOnEventOptions struct {
 	Message    string `json:"message"`
 	Credential string `json:"credential"`
 }
 
 type SendMenuMsgOnEventOptions struct {
-	HeadContent string `json:"headContent"`
-	MenuList    []MenuItem
-	TailContent string `json:"tailContent"`
-	Credential  string `json:"credential"`
+	MenuMsgOptions
+	Credential string `json:"credential"`
 }
 
 type MenuItem struct {

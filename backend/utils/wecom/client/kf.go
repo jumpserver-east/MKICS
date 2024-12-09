@@ -21,16 +21,20 @@ const (
 	WecomEventTypeSessionStatusChange  = "session_status_change"
 	WecomEventTypeUserRecallMsg        = "user_recall_msg"
 	WecomEventTypeServicerRecallMsg    = "servicer_recall_msg"
+)
 
-	SessionStatusNew               = iota // 0 未处理
-	SessionStatusHandled                  // 1 由智能助手接待
-	SessionStatusWaiting                  // 2 待接入池排队中
-	SessionStatusInProgress               // 3 由人工接待
-	SessionStatusEndedOrNotStarted        // 4 已结束/未开始
+const (
+	SessionStatusNew               int = iota // 0 未处理
+	SessionStatusHandled                      // 1 由智能助手接待
+	SessionStatusWaiting                      // 2 待接入池排队中
+	SessionStatusInProgress                   // 3 由人工接待
+	SessionStatusEndedOrNotStarted            // 4 已结束/未开始
+)
 
-	MessageTypeCustomer            = iota + 3 // 3 微信客户发送的消息
-	MessageTypeSystemEvent                    // 4 系统推送的事件消息
-	MessageTypeReceptionistMessage            // 5 接待人员在企业微信客户端发送的消息
+const (
+	MessageTypeCustomer            uint32 = iota + 3 // 3 微信客户发送的消息
+	MessageTypeSystemEvent                           // 4 系统推送的事件消息
+	MessageTypeReceptionistMessage                   // 5 接待人员在企业微信客户端发送的消息
 )
 
 type UserMsgQueue struct {
@@ -119,7 +123,7 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 					entersessioninfo, _ := msg.GetEnterSessionEvent()
 					messageInfo.KFID = entersessioninfo.Event.OpenKFID
 					messageInfo.KHID = entersessioninfo.Event.ExternalUserID
-					messageInfo.MessageType = entersessioninfo.MsgType
+					messageInfo.MessageType = entersessioninfo.Event.EventType
 					messageInfo.Credential = entersessioninfo.Event.WelcomeCode
 				default:
 					global.ZAPLOG.Info("此事件类型服务暂不处理", zap.String("EventType", msg.EventType))
@@ -189,6 +193,31 @@ func (k *WecomKF) SendTextMsg(info SendTextMsgOptions) error {
 		if _, err := k.KFClient.SendMsg(sendmsg); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (k *WecomKF) SendMenuMsg(info SendMenuMsgOptions) error {
+	sendmsg := struct {
+		KFID    string `json:"open_kfid"`
+		KHID    string `json:"touser"`
+		MsgID   string `json:"msgid,omitempty"`
+		MsgType string `json:"msgtype"`
+		MsgMenu struct {
+			HeadContent string     `json:"head_content,omitempty"`
+			List        []MenuItem `json:"list"`
+			TailContent string     `json:"tail_content,omitempty"`
+		} `json:"msgmenu"`
+	}{
+		KFID:    info.KFID,
+		KHID:    info.KHID,
+		MsgType: "msgmenu",
+	}
+	sendmsg.MsgMenu.HeadContent = info.HeadContent
+	sendmsg.MsgMenu.TailContent = info.TailContent
+	sendmsg.MsgMenu.List = info.MenuList
+	if _, err := k.KFClient.SendMsg(sendmsg); err != nil {
+		return err
 	}
 	return nil
 }

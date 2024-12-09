@@ -11,6 +11,7 @@ type WecomKFClient interface {
 	SyncMsg(body []byte) (client.MessageInfo, error)
 
 	SendTextMsg(info client.SendTextMsgOptions) error
+	SendMenuMsg(info client.SendMenuMsgOptions) error
 	SendTextMsgOnEvent(info client.SendTextMsgOnEventOptions) error
 	SendMenuMsgOnEvent(info client.SendMenuMsgOnEventOptions) error
 
