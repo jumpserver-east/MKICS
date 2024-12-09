@@ -10,9 +10,27 @@ import (
 )
 
 const (
-	KeyWecomCursorPrefix     = "wecom:cursor:"
-	WecomMsgTypeEnterSession = "enter_session"
-	WecomMsgTypeText         = "text"
+	KeyWecomCursorPrefix = "wecom:cursor:"
+
+	WecomMsgTypeEnterSession           = "enter_session"
+	WecomMsgTypeText                   = "text"
+	WecomMsgTypeEvent                  = "event"
+	WecomEventTypeEnterSession         = "enter_session"
+	WecomEventTypeMsgSendFail          = "msg_send_fail"
+	WecomEventTypeServicerStatusChange = "servicer_status_change"
+	WecomEventTypeSessionStatusChange  = "session_status_change"
+	WecomEventTypeUserRecallMsg        = "user_recall_msg"
+	WecomEventTypeServicerRecallMsg    = "servicer_recall_msg"
+
+	SessionStatusNew               = iota // 0 未处理
+	SessionStatusHandled                  // 1 由智能助手接待
+	SessionStatusWaiting                  // 2 待接入池排队中
+	SessionStatusInProgress               // 3 由人工接待
+	SessionStatusEndedOrNotStarted        // 4 已结束/未开始
+
+	MessageTypeCustomer            = iota + 3 // 3 微信客户发送的消息
+	MessageTypeSystemEvent                    // 4 系统推送的事件消息
+	MessageTypeReceptionistMessage            // 5 接待人员在企业微信客户端发送的消息
 )
 
 type UserMsgQueue struct {
@@ -81,62 +99,54 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 			message.HasMore = messageMore.HasMore
 		}
 		if len(message.MsgList) > 0 {
-			msglast := message.MsgList[len(message.MsgList)-1]
-			messageInfo.MessageID = msglast.MsgID
-			switch msglast.Origin {
-			case 3:
-				messageInfo.KFID = msglast.OpenKFID
-				messageInfo.KHID = msglast.ExternalUserID
-				switch msglast.MsgType {
-				case WecomMsgTypeText:
-					textmsg, _ := msglast.GetTextMessage()
-					messageInfo.MessageType = msglast.MsgType
-					messageInfo.Message = textmsg.Text.Content
+			msg := message.MsgList[0]
+			messageInfo.MessageID = msg.MsgID
+			messageInfo.Origin = msg.Origin
+			messageInfo.SendTime = msg.SendTime
+			if msg.Origin == MessageTypeReceptionistMessage {
+				messageInfo.StaffID = msg.ReceptionistUserID
+			}
+			switch msg.MsgType {
+			case WecomMsgTypeText:
+				messageInfo.KFID = msg.OpenKFID
+				messageInfo.KHID = msg.ExternalUserID
+				textmsg, _ := msg.GetTextMessage()
+				messageInfo.MessageType = textmsg.MsgType
+				messageInfo.Message = textmsg.Text.Content
+			case WecomMsgTypeEvent:
+				switch msg.EventType {
+				case WecomMsgTypeEnterSession:
+					entersessioninfo, _ := msg.GetEnterSessionEvent()
+					messageInfo.KFID = entersessioninfo.Event.OpenKFID
+					messageInfo.KHID = entersessioninfo.Event.ExternalUserID
+					messageInfo.MessageType = entersessioninfo.MsgType
+					messageInfo.Credential = entersessioninfo.Event.WelcomeCode
 				default:
-					global.ZAPLOG.Info("此类型的消息服务暂不处理", zap.String("MsgType", msglast.MsgType))
-				}
-			case 4:
-				switch msglast.MsgType {
-				case "event":
-					switch msglast.EventType {
-					case WecomMsgTypeEnterSession:
-						entersessioninfo, _ := msglast.GetEnterSessionEvent()
-						messageInfo.KFID = entersessioninfo.Event.OpenKFID
-						messageInfo.KHID = entersessioninfo.Event.ExternalUserID
-						messageInfo.MessageType = msglast.EventType
-						messageInfo.Credential = entersessioninfo.Event.WelcomeCode
-					default:
-						global.ZAPLOG.Info("此事件的类型服务暂不处理", zap.String("EventType", msglast.EventType))
-						return messageInfo, err
-					}
-				default:
-					global.ZAPLOG.Info("此类型的消息服务暂不处理", zap.String("MsgType", msglast.MsgType))
+					global.ZAPLOG.Info("此事件类型服务暂不处理", zap.String("EventType", msg.EventType))
 					return messageInfo, err
 				}
-			case 5:
-				messageInfo.KFID = msglast.OpenKFID
-				messageInfo.KHID = msglast.ExternalUserID
-				global.ZAPLOG.Info("接待人员在企业微信客户端发送的消息")
-				return messageInfo, err
 			default:
+				global.ZAPLOG.Info("此消息类型服务暂不处理", zap.String("MsgType", msg.MsgType))
 				return messageInfo, err
 			}
 			statusinfo, _ := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
 				OpenKFID:       messageInfo.KFID,
 				ExternalUserID: messageInfo.KHID,
 			})
-			if statusinfo.ServiceState == 0 {
+			if statusinfo.ServiceState == SessionStatusNew {
 				_, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
-					OpenKFID:       msglast.OpenKFID,
-					ExternalUserID: msglast.ExternalUserID,
-					ServiceState:   1,
+					OpenKFID:       msg.OpenKFID,
+					ExternalUserID: msg.ExternalUserID,
+					ServiceState:   SessionStatusHandled,
 				})
 				if err != nil {
 					return messageInfo, err
 				}
-				statusinfo.ServiceState = 1
+				statusinfo.ServiceState = SessionStatusHandled
 			}
-			messageInfo.StaffID = statusinfo.ServiceUserID
+			if statusinfo.ServiceState == SessionStatusInProgress {
+				messageInfo.StaffID = statusinfo.ServiceUserID
+			}
 			messageInfo.ChatState = statusinfo.ServiceState
 			return messageInfo, nil
 		}

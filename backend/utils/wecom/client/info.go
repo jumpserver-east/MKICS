@@ -23,6 +23,8 @@ type SignatureOptions struct {
 
 type MessageInfo struct {
 	MessageID   string `json:"messageid"`
+	SendTime    uint64 `json:"send_time"`
+	Origin      uint32 `json:"origin"`
 	KFID        string `json:"kfid"`
 	KHID        string `json:"khid"`
 	StaffID     string `json:"staffid"`

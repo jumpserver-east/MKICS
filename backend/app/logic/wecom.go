@@ -134,16 +134,18 @@ func (u *WecomLogic) Handle(body []byte) error {
 		global.ZAPLOG.Error("failed SyncMsg", zap.Error(err))
 		return err
 	}
-	if msginfo.MessageID != "" || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.ChatState != 0 {
+	if msginfo.MessageID != "" || msginfo.SendTime != 0 || msginfo.Origin != 0 || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.ChatState != 0 {
 		global.ZAPLOG.Info("MessageInfo 内容:",
-			zap.String("MessageID", msginfo.MessageID),
-			zap.String("KFID", msginfo.KFID),
-			zap.String("KHID", msginfo.KHID),
-			zap.String("StaffID", msginfo.StaffID),
-			zap.String("Message", msginfo.Message),
-			zap.String("MessageType", msginfo.MessageType),
-			zap.String("Credential", msginfo.Credential),
-			zap.Int("ChatState", msginfo.ChatState),
+			zap.Any("MessageID", msginfo.MessageID),
+			zap.Any("SendTime", msginfo.SendTime),
+			zap.Any("Origin", msginfo.Origin),
+			zap.Any("KFID", msginfo.KFID),
+			zap.Any("KHID", msginfo.KHID),
+			zap.Any("StaffID", msginfo.StaffID),
+			zap.Any("Message", msginfo.Message),
+			zap.Any("MessageType", msginfo.MessageType),
+			zap.Any("Credential", msginfo.Credential),
+			zap.Any("ChatState", msginfo.ChatState),
 		)
 	}
 	return u.processMessage(msginfo)
@@ -276,17 +278,17 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 		return nil
 	case wecomclient.WecomMsgTypeText:
 		switch msginfo.ChatState {
-		case 1:
+		case wecomclient.SessionStatusHandled:
 			return u.handleBotMessage(msginfo, kfinfo)
-		case 2:
+		case wecomclient.SessionStatusWaiting:
 			global.ZAPLOG.Info("未实现的聊天状态处理")
-		case 3:
+		case wecomclient.SessionStatusInProgress:
 			chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
 			if err = global.RDS.Set(context.Background(), chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
 				global.ZAPLOG.Error("redis set error", zap.Error(err))
 				return err
 			}
-		case 4:
+		case wecomclient.SessionStatusEndedOrNotStarted:
 			global.ZAPLOG.Info("未实现的聊天状态处理")
 		default:
 			global.ZAPLOG.Info("未实现的聊天状态处理")
