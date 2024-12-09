@@ -9,34 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	KeyWecomCursorPrefix = "wecom:cursor:"
-
-	WecomMsgTypeEnterSession           = "enter_session"
-	WecomMsgTypeText                   = "text"
-	WecomMsgTypeEvent                  = "event"
-	WecomEventTypeEnterSession         = "enter_session"
-	WecomEventTypeMsgSendFail          = "msg_send_fail"
-	WecomEventTypeServicerStatusChange = "servicer_status_change"
-	WecomEventTypeSessionStatusChange  = "session_status_change"
-	WecomEventTypeUserRecallMsg        = "user_recall_msg"
-	WecomEventTypeServicerRecallMsg    = "servicer_recall_msg"
-)
-
-const (
-	SessionStatusNew               int = iota // 0 未处理
-	SessionStatusHandled                      // 1 由智能助手接待
-	SessionStatusWaiting                      // 2 待接入池排队中
-	SessionStatusInProgress                   // 3 由人工接待
-	SessionStatusEndedOrNotStarted            // 4 已结束/未开始
-)
-
-const (
-	MessageTypeCustomer            uint32 = iota + 3 // 3 微信客户发送的消息
-	MessageTypeSystemEvent                           // 4 系统推送的事件消息
-	MessageTypeReceptionistMessage                   // 5 接待人员在企业微信客户端发送的消息
-)
-
 type UserMsgQueue struct {
 	mu sync.Mutex
 }
@@ -264,24 +236,12 @@ func (k *WecomKF) SendMenuMsgOnEvent(info SendMenuMsgOnEventOptions) error {
 	return nil
 }
 
-func (k *WecomKF) ServiceStateTransToStaff(options ServiceStateTransOptions) (string, error) {
+func (k *WecomKF) ServiceStateTrans(options ServiceStateTransOptions, servicestate int) (string, error) {
 	res, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
 		OpenKFID:       options.OpenKFID,
 		ExternalUserID: options.ExternalUserID,
-		ServiceState:   3,
+		ServiceState:   servicestate,
 		ServicerUserID: options.ServicerUserID,
-	})
-	if err != nil {
-		return "", err
-	}
-	return res.MsgCode, nil
-}
-
-func (k *WecomKF) ServiceStateTransToEnd(options ServiceStateTransOptions) (string, error) {
-	res, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
-		OpenKFID:       options.OpenKFID,
-		ExternalUserID: options.ExternalUserID,
-		ServiceState:   4,
 	})
 	if err != nil {
 		return "", err

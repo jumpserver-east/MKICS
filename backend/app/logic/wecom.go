@@ -309,11 +309,11 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 
 func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, staffid string, kfinfo model.KF) error {
 	global.ZAPLOG.Info("变更微信客服会话状态")
-	credential, err := u.wecomkf.ServiceStateTransToStaff(wecomclient.ServiceStateTransOptions{
+	staffcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
 		OpenKFID:       msginfo.KFID,
 		ExternalUserID: msginfo.KHID,
 		ServicerUserID: staffid,
-	})
+	}, wecomclient.SessionStatusInProgress)
 	if err != nil {
 		global.ZAPLOG.Error("变更微信客服会话状态失败", zap.Error(err))
 		currentTime := time.Now()
@@ -327,7 +327,7 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 	}
 	if err = u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
 		Message:    kfinfo.StaffWelcomeMsg,
-		Credential: credential,
+		Credential: staffcredential,
 	}); err != nil {
 		return err
 	}
@@ -373,17 +373,17 @@ func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, msginfo w
 }
 
 func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, khid, staffweightkey string) {
-	credential, err := u.wecomkf.ServiceStateTransToEnd(wecomclient.ServiceStateTransOptions{
+	endcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
 		OpenKFID:       kfinfo.KFID,
 		ExternalUserID: khid,
-	})
+	}, wecomclient.SessionStatusEndedOrNotStarted)
 	if err != nil {
 		global.ZAPLOG.Error("结束会话失败", zap.Error(err))
 		return
 	}
 	global.ZAPLOG.Info("会话超时，已变更状态")
 	if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
-		Credential:     credential,
+		Credential:     endcredential,
 		MenuMsgOptions: parseMenuText(kfinfo.BotWelcomeMsg),
 	}); err != nil {
 		global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
