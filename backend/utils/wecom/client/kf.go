@@ -3,6 +3,7 @@ package client
 import (
 	"EvoBot/backend/global"
 	"context"
+	"strconv"
 	"sync"
 
 	"github.com/silenceper/wechat/v2/work/kf"
@@ -97,6 +98,19 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 					messageInfo.KHID = entersessioninfo.Event.ExternalUserID
 					messageInfo.MessageType = entersessioninfo.Event.EventType
 					messageInfo.Credential = entersessioninfo.Event.WelcomeCode
+				case WecomEventTypeSessionStatusChange:
+					sessionstatuschangeinfo, _ := msg.GetSessionStatusChangeEvent()
+					messageInfo.KFID = sessionstatuschangeinfo.OpenKFID
+					messageInfo.KHID = sessionstatuschangeinfo.ExternalUserID
+					messageInfo.Message = strconv.FormatUint(uint64(sessionstatuschangeinfo.Event.ChangeType), 10)
+					messageInfo.MessageType = sessionstatuschangeinfo.Event.EventType
+					if sessionstatuschangeinfo.Event.OldReceptionistUserID != "" {
+						messageInfo.StaffID = sessionstatuschangeinfo.Event.OldReceptionistUserID
+					}
+					if sessionstatuschangeinfo.Event.NewReceptionistUserID != "" {
+						messageInfo.StaffID = sessionstatuschangeinfo.Event.NewReceptionistUserID
+					}
+					messageInfo.Credential = sessionstatuschangeinfo.Event.MsgCode
 				default:
 					global.ZAPLOG.Info("此事件类型服务暂不处理", zap.String("EventType", msg.EventType))
 					return messageInfo, err
@@ -234,6 +248,17 @@ func (k *WecomKF) SendMenuMsgOnEvent(info SendMenuMsgOnEventOptions) error {
 		return err
 	}
 	return nil
+}
+
+func (k *WecomKF) ServiceStateGet(options ServiceStateGetOptions) (int, error) {
+	res, err := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
+		OpenKFID:       options.OpenKFID,
+		ExternalUserID: options.ExternalUserID,
+	})
+	if err != nil {
+		return -1, err
+	}
+	return res.ServiceState, nil
 }
 
 func (k *WecomKF) ServiceStateTrans(options ServiceStateTransOptions, servicestate int) (string, error) {

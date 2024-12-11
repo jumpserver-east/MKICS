@@ -89,6 +89,11 @@ type ServiceStateTransOptions struct {
 	ServicerUserID string `json:"servicer_userid"` // 接待人员的userid，当state=3时要求必填，接待人员须处于“正在接待”中
 }
 
+type ServiceStateGetOptions struct {
+	OpenKFID       string `json:"open_kfid"`       // 客服帐号ID
+	ExternalUserID string `json:"external_userid"` // 微信客户的external_userid
+}
+
 type ReceptionistOptions struct {
 	OpenKFID   string   `json:"open_kfid"`   // 客服帐号ID
 	UserIDList []string `json:"userid_list"` // 接待人员userid列表。第三方应用填密文userid，即open_userid 可填充个数：1 ~ 100。超过100个需分批调用。

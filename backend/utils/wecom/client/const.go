@@ -12,6 +12,11 @@ const (
 	WecomEventTypeSessionStatusChange  = "session_status_change"
 	WecomEventTypeUserRecallMsg        = "user_recall_msg"
 	WecomEventTypeServicerRecallMsg    = "servicer_recall_msg"
+
+	WecomEventChangeTypeJoinSession     = "1" // 从接待池接入会话
+	WecomEventChangeTypeTransferSession = "2" // 转接会话
+	WecomEventChangeTypeEndSession      = "3" // 结束会话
+	WecomEventChangeTypeRejoinSession   = "4" // 重新接入已结束/已转接会话
 )
 
 const (

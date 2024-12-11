@@ -15,6 +15,7 @@ type WecomKFClient interface {
 	SendTextMsgOnEvent(info client.SendTextMsgOnEventOptions) error
 	SendMenuMsgOnEvent(info client.SendMenuMsgOnEventOptions) error
 
+	ServiceStateGet(options client.ServiceStateGetOptions) (int, error)
 	ServiceStateTrans(options client.ServiceStateTransOptions, servicestate int) (string, error)
 
 	ReceptionistAdd(options client.ReceptionistOptions) error
