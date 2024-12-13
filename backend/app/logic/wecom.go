@@ -306,7 +306,10 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 				global.ZAPLOG.Error("redis del error", zap.Error(err))
 				return err
 			}
+			global.ZAPLOG.Info("结束会话监控", zap.String("staffweightkey:", staffweightkey))
 		case wecomclient.WecomEventChangeTypeRejoinSession:
+		default:
+			global.ZAPLOG.Info("未实现的消息类型")
 		}
 	case wecomclient.WecomMsgTypeText:
 		switch msginfo.ChatState {
@@ -332,28 +335,46 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 }
 
 func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, staffid string, kfinfo model.KF) error {
-	global.ZAPLOG.Info("变更微信客服会话状态")
-	staffcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
-		OpenKFID:       msginfo.KFID,
+	statusinfo, err := u.wecomkf.ServiceStateGet(wecomclient.ServiceStateGetOptions{
+		OpenKFID:       kfinfo.KFID,
 		ExternalUserID: msginfo.KHID,
-		ServicerUserID: staffid,
-	}, wecomclient.SessionStatusInProgress)
+	})
 	if err != nil {
-		global.ZAPLOG.Error("变更微信客服会话状态失败", zap.Error(err))
-		currentTime := time.Now()
-		formattedTime := currentTime.Format("2006-01-02 15:04:05")
-		errormessage := "未知原因出现异常请联系工作人员或可尝试继续与 AI 对话，当前时间：" + formattedTime
-		return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
+		global.ZAPLOG.Error("获取会话失败", zap.Error(err))
+		return err
+	}
+	if statusinfo != wecomclient.SessionStatusInProgress {
+		global.ZAPLOG.Info("变更微信客服会话状态")
+		staffcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
+			OpenKFID:       msginfo.KFID,
+			ExternalUserID: msginfo.KHID,
+			ServicerUserID: staffid,
+		}, wecomclient.SessionStatusInProgress)
+		if err != nil {
+			global.ZAPLOG.Error("变更微信客服会话状态失败", zap.Error(err))
+			currentTime := time.Now()
+			formattedTime := currentTime.Format("2006-01-02 15:04:05")
+			errormessage := "未知原因出现异常请联系工作人员或可尝试继续与 AI 对话，当前时间：" + formattedTime
+			return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
+				KFID:    msginfo.KFID,
+				KHID:    msginfo.KHID,
+				Message: errormessage,
+			})
+		}
+		if err = u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
+			Message:    kfinfo.StaffWelcomeMsg,
+			Credential: staffcredential,
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err = u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
 			KFID:    msginfo.KFID,
 			KHID:    msginfo.KHID,
-			Message: errormessage,
-		})
-	}
-	if err = u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
-		Message:    kfinfo.StaffWelcomeMsg,
-		Credential: staffcredential,
-	}); err != nil {
-		return err
+			Message: kfinfo.StaffWelcomeMsg,
+		}); err != nil {
+			return err
+		}
 	}
 	global.ZAPLOG.Info("更新客户的上一次接待人员")
 	if err = kHRepo.UpdatebyKHID(model.KH{
