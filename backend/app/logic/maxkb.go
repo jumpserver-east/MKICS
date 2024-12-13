@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -101,7 +100,7 @@ func (u *MaxkbLogic) ChatMessage(chatID string, message string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	return parseResponse(resp)
+	return u.parseResponse(resp)
 }
 
 func (u *MaxkbLogic) GetAppID() (string, error) {
@@ -180,7 +179,7 @@ func (m *MaxkbLogic) getChatIdByKH(khid string) (string, error) {
 	return khinfo.ChatID, nil
 }
 
-func parseResponse(resp []byte) (string, error) {
+func (m *MaxkbLogic) parseResponse(resp []byte) (string, error) {
 	contentAll := ""
 	jsonStrList := strings.Split(string(resp), "\n")
 	for _, jsonStr := range jsonStrList {
@@ -201,25 +200,7 @@ func parseResponse(resp []byte) (string, error) {
 			}
 		}
 	}
-	contentAll = cleanContent(contentAll)
-	return contentAll, nil
-}
-
-func cleanContent(content string) string {
-	re := regexp.MustCompile(`\[(.*?)\]\((.*?)\)`)
-	content = re.ReplaceAllString(content, "$2")
-
-	content = regexp.MustCompile(`\#\s*`).ReplaceAllString(content, "")
-	content = regexp.MustCompile(`\*\*|\_\_`).ReplaceAllString(content, "")
-	content = regexp.MustCompile(`\*|\_`).ReplaceAllString(content, "")
-	content = regexp.MustCompile(`\~\~`).ReplaceAllString(content, "")
-	content = regexp.MustCompile("`{1,3}").ReplaceAllString(content, "")
-
-	content = strings.ReplaceAll(content, "\n\n", "\n")
-	reNewline := regexp.MustCompile(`\n+`)
-	content = reNewline.ReplaceAllString(content, "\n")
-
-	return content
+	return MarkdownToText(contentAll), nil
 }
 
 func makeRequest(method, url string, headers map[string]string, body *bytes.Buffer) ([]byte, error) {

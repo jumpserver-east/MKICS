@@ -4,6 +4,8 @@ import (
 	"EvoBot/backend/constant"
 	"EvoBot/backend/global"
 	"context"
+	"regexp"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -102,4 +104,47 @@ func isWithinTime(repeat int, week string) bool {
 	default:
 		return false
 	}
+}
+
+func MarkdownToText(markdown string) string {
+	var buffer strings.Builder
+	lines := strings.Split(markdown, "\n")
+	inList := false
+	for _, line := range lines {
+		if titleMatch := regexp.MustCompile(`^(#{1,6})\s*(.*)$`).FindStringSubmatch(line); titleMatch != nil {
+			buffer.WriteString(titleMatch[2] + "\n")
+			continue
+		}
+		if listMatch := regexp.MustCompile(`^(\s*)-\s+(.*)$`).FindStringSubmatch(line); listMatch != nil {
+			if !inList {
+				buffer.WriteString("\n")
+				inList = true
+			}
+			buffer.WriteString(strings.Repeat(" ", len(listMatch[1])) + "- " + listMatch[2] + "\n")
+			continue
+		}
+		if orderedListMatch := regexp.MustCompile(`^(\s*)\d+\.\s+(.*)$`).FindStringSubmatch(line); orderedListMatch != nil {
+			if !inList {
+				buffer.WriteString("\n")
+				inList = true
+			}
+			buffer.WriteString(strings.Repeat(" ", len(orderedListMatch[1])) + "1. " + orderedListMatch[2] + "\n")
+			continue
+		}
+		if inList && strings.TrimSpace(line) == "" {
+			inList = false
+			continue
+		}
+		buffer.WriteString(line + "\n")
+	}
+	text := buffer.String()
+	text = regexp.MustCompile(`\*\*(.*?)\*\*`).ReplaceAllString(text, "$1")
+	text = regexp.MustCompile(`__(.*?)__`).ReplaceAllString(text, "$1")
+	text = regexp.MustCompile(`\*(.*?)\*`).ReplaceAllString(text, "$1")
+	text = regexp.MustCompile(`_(.*?)_`).ReplaceAllString(text, "$1")
+	text = regexp.MustCompile(`\[.*?\]\((.*?)\)`).ReplaceAllString(text, "$1")
+	text = strings.ReplaceAll(text, "\n\n", "\n")
+	reNewline := regexp.MustCompile(`\n+`)
+	text = reNewline.ReplaceAllString(text, "\n")
+	return text
 }
