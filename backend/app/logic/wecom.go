@@ -440,7 +440,7 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msg
 	global.ZAPLOG.Info("会话超时，已变更状态")
 	if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
 		Credential:     endcredential,
-		MenuMsgOptions: parseMenuText(kfinfo.BotWelcomeMsg),
+		MenuMsgOptions: parseMenuText(kfinfo.ChatendMsg),
 	}); err != nil {
 		global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
 	}
