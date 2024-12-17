@@ -288,12 +288,19 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 		switch msginfo.Message {
 		case wecomclient.WecomEventChangeTypeJoinSession:
 		case wecomclient.WecomEventChangeTypeTransferSession:
+			if err := u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
+				Credential: msginfo.Credential,
+				Message:    "转接人工中，请稍等...",
+			}); err != nil {
+				global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
+			}
+			return u.handleSuccessfulTransfer(msginfo, msginfo.StaffID, kfinfo)
 		case wecomclient.WecomEventChangeTypeEndSession:
 			if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
 				Credential:     msginfo.Credential,
 				MenuMsgOptions: parseMenuText(kfinfo.ChatendMsg),
 			}); err != nil {
-				global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
+				global.ZAPLOG.Error("SendMenuMsgOnEvent", zap.Error(err))
 			}
 			staffweightkey := constant.KeyStaffWeightPrefix + msginfo.StaffID
 			if err := global.RDS.Incr(context.Background(), staffweightkey).Err(); err != nil {
@@ -510,11 +517,9 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 		selectedstaff, staffweightvalue := getHighestWeightStaff(staffIDs)
 		if selectedstaff != "" {
 			global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", selectedstaff), zap.Int("权重", staffweightvalue))
-			if err := u.handleSuccessfulTransfer(msginfo, selectedstaff, kfinfo); err != nil {
-				return err
-			}
+			return u.handleSuccessfulTransfer(msginfo, selectedstaff, kfinfo)
 		}
-		global.ZAPLOG.Info("没有找到空闲的客服")
+		global.ZAPLOG.Info("没有找到空闲的接待人员")
 		return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
 			KFID:    msginfo.KFID,
 			KHID:    msginfo.KHID,
