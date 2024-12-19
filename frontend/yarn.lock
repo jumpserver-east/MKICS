@@ -3187,11 +3187,6 @@ human-signals@^5.0.0:
   resolved "https://mirrors.huaweicloud.com/repository/npm/human-signals/-/human-signals-5.0.0.tgz#42665a284f9ae0dade3ba41ebc37eb4b852f3a28"
   integrity sha512-AXcZb6vzzrFAUE61HnN4mpLqd/cSIwNQjtNWR0euPm6y0iqx3G4gOXaIDdtdDwZmhwe82LA6+zinmW4UBWVePQ==
 
-husky@^8.0.3:
-  version "8.0.3"
-  resolved "https://mirrors.huaweicloud.com/repository/npm/husky/-/husky-8.0.3.tgz#4936d7212e46d1dea28fef29bb3a108872cd9184"
-  integrity sha512-+dQSyqPh4x1hlO1swXBiNb2HzTDN1I2IGLQx1GrBuiqFJfoMrnZWwVmatvSiO+Iz8fBUnf+lekwNo4c2LlXItg==
-
 ignore@^5.2.0, ignore@^5.2.4:
   version "5.3.2"
   resolved "https://mirrors.huaweicloud.com/repository/npm/ignore/-/ignore-5.3.2.tgz#3cd40e729f3643fd87cb04e50bf0eb722bc596f5"
@@ -4101,6 +4096,11 @@ mlly@^1.1.0, mlly@^1.7.1, mlly@^1.7.2, mlly@^1.7.3:
     pathe "^1.1.2"
     pkg-types "^1.2.1"
     ufo "^1.5.4"
+
+monaco-editor@^0.52.2:
+  version "0.52.2"
+  resolved "https://mirrors.huaweicloud.com/repository/npm/monaco-editor/-/monaco-editor-0.52.2.tgz#53c75a6fcc6802684e99fd1b2700299857002205"
+  integrity sha512-GEQWEZmfkOGLdd3XK8ryrfWz3AIP8YymVXiPHEdewrUq7mh0qrKrfHLNCXcbB6sTnMLnOZ3ztSiKcciFUkIJwQ==
 
 mri@^1.2.0:
   version "1.2.0"

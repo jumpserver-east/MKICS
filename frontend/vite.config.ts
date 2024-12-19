@@ -8,9 +8,14 @@ import Components from 'unplugin-vue-components/vite'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
+const prefix = `monaco-editor/esm/vs`;
+
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
+    port: 24121,
+    open: false,
+    host: '0.0.0.0',
     proxy: {
       '/api/v1': {
         target: 'http://localhost:24916',
@@ -22,7 +27,11 @@ export default defineConfig({
     vue(),
     UnoCSS(),
     AutoImport({
-      resolvers: [ElementPlusResolver()]
+      resolvers: [
+        ElementPlusResolver({
+          importStyle: 'sass'
+        })
+      ]
     }),
     Components({
       resolvers: [
@@ -49,15 +58,22 @@ export default defineConfig({
     }
   },
   build: {
-    chunkSizeWarningLimit: 1500,
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            return 'vendor'
-          }
-        }
-      }
-    }
+      outDir: '../cmd/server/web',
+      minify: 'esbuild',
+      target: 'esnext',
+      rollupOptions: {
+          output: {
+              chunkFileNames: 'assets/js/[name]-[hash].js',
+              entryFileNames: 'assets/js/[name]-[hash].js',
+              assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+              manualChunks: {
+                  jsonWorker: [`${prefix}/language/json/json.worker`],
+                  cssWorker: [`${prefix}/language/css/css.worker`],
+                  htmlWorker: [`${prefix}/language/html/html.worker`],
+                  tsWorker: [`${prefix}/language/typescript/ts.worker`],
+                  editorWorker: [`${prefix}/editor/editor.worker`],
+              },
+          },
+      },
   }
 })
