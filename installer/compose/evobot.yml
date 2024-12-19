@@ -1,0 +1,10 @@
+services:
+  evobot:
+    image: evobot:${VERSION}
+    container_name: evobot
+    ports:
+      - "24916:24916"
+    volumes:
+      - /opt/evobot/log/EvoBot.log:/opt/evobot/EvoBot.log
+      - /opt/evobot/config/config.yaml:/opt/evobot/config.yaml
+    restart: always
