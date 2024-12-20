@@ -21,3 +21,7 @@
 
 # Dependency directories
 config.yaml
+
+cmd/server/web/assets
+cmd/server/web/monacoeditorwork
+cmd/server/web/index.html
