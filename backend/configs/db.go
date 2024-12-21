@@ -1,7 +1,7 @@
 package configs
 
 type DBConfig struct {
-	Engine   string `mapstructure:"engine"` // PostgreSQL/MySQL
+	Engine   string `mapstructure:"engine"` // postgres/mysql
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	Username string `mapstructure:"username"`
