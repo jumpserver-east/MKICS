@@ -3,8 +3,8 @@ package client
 const (
 	KeyWecomCursorPrefix = "wecom:cursor:"
 
-	WecomMsgTypeEnterSession           = "enter_session"
-	WecomMsgTypeText                   = "text"
+	WecomMsgTypeText = "text"
+
 	WecomMsgTypeEvent                  = "event"
 	WecomEventTypeEnterSession         = "enter_session"
 	WecomEventTypeMsgSendFail          = "msg_send_fail"

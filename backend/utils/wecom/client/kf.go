@@ -92,7 +92,7 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 				messageInfo.Message = textmsg.Text.Content
 			case WecomMsgTypeEvent:
 				switch msg.EventType {
-				case WecomMsgTypeEnterSession:
+				case WecomEventTypeEnterSession:
 					entersessioninfo, _ := msg.GetEnterSessionEvent()
 					messageInfo.KFID = entersessioninfo.Event.OpenKFID
 					messageInfo.KHID = entersessioninfo.Event.ExternalUserID

@@ -270,7 +270,7 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 		return err
 	}
 	switch msginfo.MessageType {
-	case wecomclient.WecomMsgTypeEnterSession:
+	case wecomclient.WecomEventTypeEnterSession:
 		if msginfo.Credential != "" {
 			return u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
 				Credential:     msginfo.Credential,
