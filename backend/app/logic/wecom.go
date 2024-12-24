@@ -288,6 +288,19 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 		switch msginfo.Message {
 		case wecomclient.WecomEventChangeTypeJoinSession:
 		case wecomclient.WecomEventChangeTypeTransferSession:
+			khinfo, err := kHRepo.Get(kHRepo.WithKHID(msginfo.KHID))
+			if err != nil {
+				global.ZAPLOG.Info("数据库没有找到该客户信息")
+				if err := kHRepo.Create(model.KH{KHID: msginfo.KHID}); err != nil {
+					return err
+				}
+				global.ZAPLOG.Info("录入客户信息:", zap.String("khid", msginfo.KHID))
+			}
+			chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + khinfo.StaffID
+			if err := global.RDS.Del(context.Background(), chatkey).Err(); err != nil {
+				global.ZAPLOG.Error("redis del error", zap.Error(err))
+				return err
+			}
 			isStaffWorkByStaffID(msginfo.StaffID)
 			return u.handleSuccessfulTransfer(msginfo, msginfo.StaffID, kfinfo)
 		case wecomclient.WecomEventChangeTypeEndSession:
