@@ -577,7 +577,7 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 			err = u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
 				KFID:    msginfo.KFID,
 				KHID:    msginfo.KHID,
-				Message: fullContent,
+				Message: MarkdownToText(fullContent),
 			})
 			if err != nil {
 				return err
@@ -592,12 +592,12 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 		err = u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
 			KFID:    msginfo.KFID,
 			KHID:    msginfo.KHID,
-			Message: fullContent,
+			Message: MarkdownToText(fullContent),
 		})
 		if err != nil {
 			return err
 		}
-		global.ZAPLOG.Info("bot消息:", zap.String("fullContent", fullContent))
+		global.ZAPLOG.Info("bot原消息:", zap.String("fullContent", fullContent))
 		return nil
 	case err := <-errorChan:
 		global.ZAPLOG.Error("failed ChatMessage", zap.Error(err))

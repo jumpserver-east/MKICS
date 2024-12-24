@@ -200,7 +200,7 @@ func (m *MaxkbLogic) parseResponse(resp []byte) (string, error) {
 			}
 		}
 	}
-	return MarkdownToText(contentAll), nil
+	return contentAll, nil
 }
 
 func makeRequest(method, url string, headers map[string]string, body *bytes.Buffer) ([]byte, error) {

@@ -123,14 +123,6 @@ func MarkdownToText(markdown string) string {
 			buffer.WriteString(strings.Repeat(" ", len(listMatch[1])) + "- " + listMatch[2] + "\n")
 			continue
 		}
-		if orderedListMatch := regexp.MustCompile(`^(\s*)\d+\.\s+(.*)$`).FindStringSubmatch(line); orderedListMatch != nil {
-			if !inList {
-				buffer.WriteString("\n")
-				inList = true
-			}
-			buffer.WriteString(strings.Repeat(" ", len(orderedListMatch[1])) + "1. " + orderedListMatch[2] + "\n")
-			continue
-		}
 		if inList && strings.TrimSpace(line) == "" {
 			inList = false
 			continue
