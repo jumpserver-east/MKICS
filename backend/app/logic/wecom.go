@@ -310,12 +310,6 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 			}); err != nil {
 				global.ZAPLOG.Error("SendMenuMsgOnEvent", zap.Error(err))
 			}
-			staffweightkey := constant.KeyStaffWeightPrefix + msginfo.StaffID
-			if err := global.RDS.Incr(context.Background(), staffweightkey).Err(); err != nil {
-				global.ZAPLOG.Error("Incr", zap.Error(err))
-			} else {
-				global.ZAPLOG.Info("结束会话变更权重", zap.String("staffweightkey:", staffweightkey))
-			}
 			chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + msginfo.StaffID
 			if err := global.RDS.Del(context.Background(), chatkey).Err(); err != nil {
 				global.ZAPLOG.Error("redis del error", zap.Error(err))
