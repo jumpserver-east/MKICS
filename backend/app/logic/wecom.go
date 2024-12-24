@@ -288,6 +288,7 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 		switch msginfo.Message {
 		case wecomclient.WecomEventChangeTypeJoinSession:
 		case wecomclient.WecomEventChangeTypeTransferSession:
+			isStaffWorkByStaffID(msginfo.StaffID)
 			return u.handleSuccessfulTransfer(msginfo, msginfo.StaffID, kfinfo)
 		case wecomclient.WecomEventChangeTypeEndSession:
 			if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
