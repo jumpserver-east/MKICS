@@ -428,7 +428,13 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msg
 	if statusinfo == wecomclient.SessionStatusEndedOrNotStarted {
 		return
 	}
-	if statusinfo == wecomclient.SessionStatusInProgress && statusinfo == msginfo.ChatState {
+	var cursor uint64
+	chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID
+	result, _, err := global.RDS.Scan(ctx, cursor, chatkey+"*", 10).Result()
+	if err != nil {
+		return
+	}
+	if len(result) > 0 {
 		return
 	}
 	endcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
