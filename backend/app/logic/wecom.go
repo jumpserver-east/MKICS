@@ -406,7 +406,12 @@ func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, msginfo w
 		select {
 		case <-ticker.C:
 			if !u.hasKHReplied(ctx, chatkey) {
-				u.handleChatTimeout(ctx, kfinfo, msginfo, staffweightkey)
+				u.handleChatTimeout(ctx, kfinfo, msginfo)
+				if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
+					global.ZAPLOG.Error("Incr", zap.Error(err))
+				} else {
+					global.ZAPLOG.Info("结束会话变更权重", zap.String("staffweightkey:", staffweightkey))
+				}
 				return
 			}
 		case <-ctx.Done():
@@ -416,7 +421,7 @@ func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, msginfo w
 	}
 }
 
-func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msginfo wecomclient.MessageInfo, staffweightkey string) {
+func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msginfo wecomclient.MessageInfo) {
 	statusinfo, err := u.wecomkf.ServiceStateGet(wecomclient.ServiceStateGetOptions{
 		OpenKFID:       kfinfo.KFID,
 		ExternalUserID: msginfo.KHID,
@@ -451,11 +456,6 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msg
 		MenuMsgOptions: parseMenuText(kfinfo.ChatendMsg),
 	}); err != nil {
 		global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
-	}
-	if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
-		global.ZAPLOG.Error("Incr", zap.Error(err))
-	} else {
-		global.ZAPLOG.Info("结束会话变更权重", zap.String("staffweightkey:", staffweightkey))
 	}
 }
 
