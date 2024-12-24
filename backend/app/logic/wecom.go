@@ -308,12 +308,12 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 			} else {
 				global.ZAPLOG.Info("结束会话变更权重", zap.String("staffweightkey:", staffweightkey))
 			}
-			chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
+			chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + msginfo.StaffID
 			if err := global.RDS.Del(context.Background(), chatkey).Err(); err != nil {
 				global.ZAPLOG.Error("redis del error", zap.Error(err))
 				return err
 			}
-			global.ZAPLOG.Info("结束会话监控", zap.String("staffweightkey:", staffweightkey))
+			global.ZAPLOG.Info("结束会话监控", zap.String("chatkey:", chatkey))
 		case wecomclient.WecomEventChangeTypeRejoinSession:
 		default:
 			global.ZAPLOG.Info("未实现的消息类型")
@@ -325,7 +325,7 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 		case wecomclient.SessionStatusWaiting:
 			global.ZAPLOG.Info("未实现的聊天状态处理")
 		case wecomclient.SessionStatusInProgress:
-			chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
+			chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + msginfo.StaffID
 			if err = global.RDS.Set(context.Background(), chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
 				global.ZAPLOG.Error("redis set error", zap.Error(err))
 				return err
@@ -342,15 +342,7 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 }
 
 func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, staffid string, kfinfo model.KF) error {
-	statusinfo, err := u.wecomkf.ServiceStateGet(wecomclient.ServiceStateGetOptions{
-		OpenKFID:       kfinfo.KFID,
-		ExternalUserID: msginfo.KHID,
-	})
-	if err != nil {
-		global.ZAPLOG.Error("获取会话失败", zap.Error(err))
-		return err
-	}
-	if statusinfo != wecomclient.SessionStatusInProgress {
+	if msginfo.ChatState != wecomclient.SessionStatusInProgress {
 		global.ZAPLOG.Info("变更微信客服会话状态")
 		staffcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
 			OpenKFID:       msginfo.KFID,
@@ -374,17 +366,9 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 		}); err != nil {
 			return err
 		}
-	} else {
-		if err = u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-			KFID:    msginfo.KFID,
-			KHID:    msginfo.KHID,
-			Message: kfinfo.StaffWelcomeMsg,
-		}); err != nil {
-			return err
-		}
 	}
 	global.ZAPLOG.Info("更新客户的上一次接待人员")
-	if err = kHRepo.UpdatebyKHID(model.KH{
+	if err := kHRepo.UpdatebyKHID(model.KH{
 		KHID:    msginfo.KHID,
 		StaffID: staffid,
 	}); err != nil {
@@ -393,27 +377,27 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 	global.ZAPLOG.Info("降低该接待人员空闲权重")
 	ctx := context.Background()
 	staffweightkey := constant.KeyStaffWeightPrefix + staffid
-	if err = global.RDS.Decr(ctx, staffweightkey).Err(); err != nil {
+	if err := global.RDS.Decr(ctx, staffweightkey).Err(); err != nil {
 		return err
 	}
 	global.ZAPLOG.Info("缓存会话超时时间")
-	chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
-	if err = global.RDS.Set(ctx, chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
+	chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + staffid
+	if err := global.RDS.Set(ctx, chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
 		global.ZAPLOG.Error("redis set error", zap.Error(err))
 		return err
 	}
 	global.ZAPLOG.Info("开始监控会话任务")
-	go u.monitorChat(ctx, kfinfo, msginfo, staffweightkey)
+	go u.monitorChat(ctx, kfinfo, msginfo, staffweightkey, chatkey)
 	return nil
 }
 
-func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, msginfo wecomclient.MessageInfo, staffweightkey string) {
+func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, msginfo wecomclient.MessageInfo, staffweightkey, chatkey string) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			if !u.hasKHReplied(ctx, msginfo) {
+			if !u.hasKHReplied(ctx, chatkey) {
 				u.handleChatTimeout(ctx, kfinfo, msginfo, staffweightkey)
 				return
 			}
@@ -434,6 +418,9 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msg
 		return
 	}
 	if statusinfo == wecomclient.SessionStatusEndedOrNotStarted {
+		return
+	}
+	if statusinfo == wecomclient.SessionStatusInProgress && statusinfo == msginfo.ChatState {
 		return
 	}
 	endcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
@@ -458,8 +445,7 @@ func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msg
 	}
 }
 
-func (u *WecomLogic) hasKHReplied(ctx context.Context, msginfo wecomclient.MessageInfo) bool {
-	chatkey := constant.KeyWecomKHKFMsgIDPrefix + msginfo.KHID + ":" + msginfo.KFID
+func (u *WecomLogic) hasKHReplied(ctx context.Context, chatkey string) bool {
 	exists, err := global.RDS.Exists(ctx, chatkey).Result()
 	if err != nil {
 		global.ZAPLOG.Error("检查客户回复缓存失败", zap.Error(err))
