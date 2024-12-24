@@ -134,9 +134,6 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 				}
 				statusinfo.ServiceState = SessionStatusHandled
 			}
-			if statusinfo.ServiceState == SessionStatusInProgress {
-				messageInfo.StaffID = statusinfo.ServiceUserID
-			}
 			messageInfo.ChatState = statusinfo.ServiceState
 			return messageInfo, nil
 		}
