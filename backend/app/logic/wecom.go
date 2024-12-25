@@ -317,6 +317,8 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 			}
 			global.ZAPLOG.Info("结束会话监控", zap.String("chatkey:", chatkey))
 		case wecomclient.WecomEventChangeTypeRejoinSession:
+			isStaffWorkByStaffID(msginfo.StaffID)
+			return u.handleSuccessfulTransfer(msginfo, msginfo.StaffID, kfinfo)
 		default:
 			global.ZAPLOG.Info("未实现的消息类型")
 		}

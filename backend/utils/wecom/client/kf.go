@@ -44,6 +44,7 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 		var syncMsgOptions kf.SyncMsgOptions
 		syncMsgOptions.OpenKfID = callbackMessage.OpenKfID
 		syncMsgOptions.Token = callbackMessage.Token
+		syncMsgOptions.Limit = 1 //期望请求的数据量
 		wecomcursorkey := KeyWecomCursorPrefix + callbackMessage.OpenKfID
 		exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
 		if err != nil {
@@ -64,18 +65,30 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 			return messageInfo, err
 		}
 		for message.HasMore == 1 {
-			syncMsgOptions.Cursor = message.NextCursor
+			global.ZAPLOG.Info("HasMore")
+			exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
+			if err != nil {
+				global.ZAPLOG.Error("failed to check key existence", zap.Error(err))
+			}
+			if exists > 0 {
+				wecomcursorvalue, err := global.RDS.Get(context.Background(), wecomcursorkey).Result()
+				if err != nil {
+					global.ZAPLOG.Error("failed to get wecomcursorkey", zap.Error(err))
+				}
+				syncMsgOptions.Cursor = wecomcursorvalue
+			}
 			messageMore, err := k.KFClient.SyncMsg(syncMsgOptions)
 			if err != nil {
 				return messageInfo, err
 			}
-			if err = global.RDS.Set(context.Background(), wecomcursorkey, message.NextCursor, 0).Err(); err != nil {
+			if err = global.RDS.Set(context.Background(), wecomcursorkey, messageMore.NextCursor, 0).Err(); err != nil {
 				return messageInfo, err
 			}
 			message.MsgList = append(message.MsgList, messageMore.MsgList...)
 			message.HasMore = messageMore.HasMore
 		}
 		if len(message.MsgList) > 0 {
+			global.ZAPLOG.Info("len list", zap.Any("len list", len(message.MsgList)))
 			msg := message.MsgList[0]
 			messageInfo.MessageID = msg.MsgID
 			messageInfo.Origin = msg.Origin
