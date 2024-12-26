@@ -50,6 +50,25 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/logout": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/kf": {
             "get": {
                 "description": "Retrieve a list of all kf",
@@ -948,6 +967,9 @@ const docTemplate = `{
         "request.KF": {
             "type": "object",
             "properties": {
+                "bot_prompt": {
+                    "type": "string"
+                },
                 "bot_timeout": {
                     "type": "integer"
                 },
@@ -1022,9 +1044,6 @@ const docTemplate = `{
         "request.ReceptionistOptions": {
             "type": "object",
             "properties": {
-                "open_kfid": {
-                    "type": "string"
-                },
                 "userid_list": {
                     "type": "array",
                     "items": {

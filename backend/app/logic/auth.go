@@ -8,6 +8,7 @@ import (
 	"EvoBot/backend/utils/jwt"
 	"EvoBot/backend/utils/passwd"
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ type AuthLogic struct{}
 
 type IAuthLogic interface {
 	Login(c *gin.Context, req request.Login) (*response.Tokens, error)
-	//LogOut(c *gin.Context) error
+	Logout(c *gin.Context, token string) error
 }
 
 func NewIAuthLogic() IAuthLogic {
@@ -52,4 +53,20 @@ func (u *AuthLogic) Login(c *gin.Context, req request.Login) (*response.Tokens, 
 	return &response.Tokens{
 		AccessToken: accessToken,
 	}, nil
+}
+
+func (u *AuthLogic) Logout(c *gin.Context, token string) error {
+	parts := strings.SplitN(token, " ", 2)
+	claims, err := jwt.VerifyToken(parts[1])
+	if err != nil {
+		global.ZAPLOG.Error("failed to parse token", zap.Error(err))
+		return err
+	}
+	redisKey := constant.KeyUserTokenPrefix + claims.UUID + ":" + c.RemoteIP()
+	err = global.RDS.Del(context.Background(), redisKey).Err()
+	if err != nil {
+		global.ZAPLOG.Error("failed to delete token from Redis", zap.Error(err))
+		return err
+	}
+	return nil
 }

@@ -13,6 +13,6 @@ func (s *BaseRouter) InitRouter(Router *gin.RouterGroup) {
 	baseApi := v1.ApiGroupApp.BaseApi
 	{
 		baseRouter.POST("/login", baseApi.Login)
-		//baseRouter.POST("/logout", baseApi.LogOut)
+		baseRouter.POST("/logout", baseApi.Logout)
 	}
 }

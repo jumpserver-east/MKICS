@@ -71,6 +71,8 @@ definitions:
     type: object
   request.KF:
     properties:
+      bot_prompt:
+        type: string
       bot_timeout:
         type: integer
       bot_timeout_msg:
@@ -120,8 +122,6 @@ definitions:
     type: object
   request.ReceptionistOptions:
     properties:
-      open_kfid:
-        type: string
       userid_list:
         items:
           type: string
@@ -185,6 +185,18 @@ paths:
           schema:
             $ref: '#/definitions/dto.Response'
       summary: User login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: User logout
       tags:
       - auth
   /kf:
