@@ -6,7 +6,6 @@ type KF struct {
 	KFID             string  `gorm:"column:kfid;type:varchar(255);" json:"kfid"`
 	KFPlatform       string  `gorm:"column:kfplatform;type:varchar(255);" json:"kfplatform"`
 	BotID            string  `gorm:"column:botid;type:varchar(255);" json:"botid"`
-	BotPlatfrom      string  `gorm:"column:botplatform;type:varchar(255);" json:"botplatform"`
 	Status           int     `gorm:"column:status;type:int;" json:"status"`                                // 1机器人可转人工;2仅机器人;3仅人工
 	ReceivePriority  int     `gorm:"column:receive_priority;type:int;" json:"receive_priority"`            // 是否优先上一个
 	ReceiveRule      int     `gorm:"column:receive_rule;type:int;" json:"receive_rule"`                    // 1轮流接待，2空闲接待

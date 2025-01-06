@@ -38,7 +38,6 @@ func (u *KFLogic) KFAdd(req request.KF) error {
 		KFID:             req.KFID,
 		KFPlatform:       req.KFPlatform,
 		BotID:            req.BotID,
-		BotPlatfrom:      req.BotPlatfrom,
 		Status:           req.Status,
 		ReceivePriority:  req.ReceivePriority,
 		ReceiveRule:      req.ReceiveRule,
@@ -83,7 +82,6 @@ func (u *KFLogic) KFUpdate(uuid string, req request.KF) error {
 	kf.KFID = req.KFID
 	kf.KFPlatform = req.KFPlatform
 	kf.BotID = req.BotID
-	kf.BotPlatfrom = req.BotPlatfrom
 	kf.Status = req.Status
 	kf.ReceivePriority = req.ReceivePriority
 	kf.ReceiveRule = req.ReceiveRule
@@ -165,7 +163,6 @@ func (u *KFLogic) KFGet(uuid string) (response.KF, error) {
 	kfres.KFID = kf.KFID
 	kfres.KFPlatform = kf.KFPlatform
 	kfres.BotID = kf.BotID
-	kfres.BotPlatfrom = kf.BotPlatfrom
 	kfres.Status = kf.Status
 	kfres.ReceivePriority = kf.ReceivePriority
 	kfres.ReceiveRule = kf.ReceiveRule
@@ -224,7 +221,6 @@ func (u *KFLogic) KFList() ([]response.KF, error) {
 		kfres.KFID = kf.KFID
 		kfres.KFPlatform = kf.KFPlatform
 		kfres.BotID = kf.BotID
-		kfres.BotPlatfrom = kf.BotPlatfrom
 		kfres.Status = kf.Status
 		kfres.ReceivePriority = kf.ReceivePriority
 		kfres.ReceiveRule = kf.ReceiveRule

@@ -5,7 +5,6 @@ type KF struct {
 	KFID             string `json:"kfid"`
 	KFPlatform       string `json:"kfplatform"`
 	BotID            string `json:"botid"`
-	BotPlatfrom      string `json:"botplatform"`
 	Status           int    `json:"status"`
 	ReceivePriority  int    `json:"receive_priority"`
 	ReceiveRule      int    `json:"receive_rule"`
