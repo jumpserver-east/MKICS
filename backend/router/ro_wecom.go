@@ -12,20 +12,21 @@ type WecomRouter struct {
 
 func (s *WecomRouter) InitRouter(Router *gin.RouterGroup) {
 	wecomRouter := Router.Group("wecom")
+	wecomAuthRouter := Router.Group("wecom").Use(middleware.AuthRequired())
 	baseApi := v1.ApiGroupApp.BaseApi
 	{
 		wecomRouter.GET("/callback", baseApi.WecomVerifyURL)
 		wecomRouter.POST("/callback", baseApi.WecomHandle)
 
-		wecomRouter.GET("/config", middleware.AuthRequired(), baseApi.WecomConfigList)
-		wecomRouter.GET("/config/:uuid", middleware.AuthRequired(), baseApi.WecomConfigGet)
-		wecomRouter.PATCH("/config/:uuid", middleware.AuthRequired(), baseApi.WecomConfigUpdate)
+		wecomAuthRouter.GET("/config", baseApi.WecomConfigList)
+		wecomAuthRouter.GET("/config/:uuid", baseApi.WecomConfigGet)
+		wecomAuthRouter.PATCH("/config/:uuid", baseApi.WecomConfigUpdate)
 
-		wecomRouter.GET("/receptionist/:kfid", middleware.AuthRequired(), baseApi.WecomReceptionistList)
-		wecomRouter.POST("/receptionist/:kfid", middleware.AuthRequired(), baseApi.WecomReceptionistAdd)
-		wecomRouter.DELETE("/receptionist/:kfid", middleware.AuthRequired(), baseApi.WecomReceptionistDel)
+		wecomAuthRouter.GET("/receptionist/:kfid", baseApi.WecomReceptionistList)
+		wecomAuthRouter.POST("/receptionist/:kfid", baseApi.WecomReceptionistAdd)
+		wecomAuthRouter.DELETE("/receptionist/:kfid", baseApi.WecomReceptionistDel)
 
-		wecomRouter.GET("/account", middleware.AuthRequired(), baseApi.WecomAccountList)
-		wecomRouter.GET("/account/:kfid", middleware.AuthRequired(), baseApi.WecomAddContactWay)
+		wecomAuthRouter.GET("/account", baseApi.WecomAccountList)
+		wecomAuthRouter.GET("/account/:kfid", baseApi.WecomAddContactWay)
 	}
 }

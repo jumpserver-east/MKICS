@@ -8,12 +8,9 @@ import (
 )
 
 var AddTableMaxkbConf = &gormigrate.Migration{
-	ID: "20241113-add-table-maxkb-conf",
+	ID: "20241113-add-table-llmapp-config",
 	Migrate: func(tx *gorm.DB) error {
-		if err := tx.AutoMigrate(&model.MaxkbConf{}); err != nil {
-			return err
-		}
-		if err := tx.Create(&model.MaxkbConf{}).Error; err != nil {
+		if err := tx.AutoMigrate(&model.LLMAppConfig{}); err != nil {
 			return err
 		}
 		return nil

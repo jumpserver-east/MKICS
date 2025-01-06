@@ -12,7 +12,7 @@ var (
 	authLogic = logic.NewIAuthLogic()
 
 	wecomLogic  = logic.NewIWecomLogic()
-	maxkbLogic  = logic.NewIMaxkbLogic()
+	llmappLogic = logic.NewILLMAppLogic()
 	policyLogic = logic.NewIPolicyLogic()
 	staffLogic  = logic.NewIStaffLogic()
 	kFLogic     = logic.NewIKFLogic()

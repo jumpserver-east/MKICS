@@ -7,6 +7,7 @@ import (
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/constant"
 	"EvoBot/backend/global"
+	"EvoBot/backend/utils/llmapp"
 	"EvoBot/backend/utils/wecom"
 	wecomclient "EvoBot/backend/utils/wecom/client"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 
 type WecomLogic struct {
 	wecomkf wecom.WecomKFClient
+	llmapp  llmapp.LLMAppClient
 }
 
 type IWecomLogic interface {
@@ -552,10 +554,18 @@ func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo, kfinfo mo
 }
 
 func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
-	maxkbLogic := NewIMaxkbLogic() // 依赖，后续需要解耦
-	chatid, err := maxkbLogic.getChatIdByKH(msginfo.KHID)
+	if u.llmapp == nil {
+		varMap := make(map[string]interface{})
+		llmappconfig, err := llmappRepo.Get(commonRepo.WithByUUID(kfinfo.BotID))
+		if err != nil {
+			return err
+		}
+		varMap["base_url"] = llmappconfig.BaseURL
+		varMap["api_key"] = llmappconfig.ApiKey
+		u.llmapp, _ = llmapp.NewLLMAppClient(llmappconfig.LLMAppType, varMap)
+	}
+	chatid, err := GetChatIdByKH(msginfo.KHID, u.llmapp)
 	if err != nil {
-		global.ZAPLOG.Error("getChatIdByKH", zap.Error(err))
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(kfinfo.BotTimeout)*time.Second)
@@ -564,7 +574,7 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 	errorChan := make(chan error)
 	go func() {
 		message := msginfo.Message + kfinfo.BotPrompt
-		fullContent, err := maxkbLogic.ChatMessage(chatid, message)
+		fullContent, err := u.llmapp.ChatMessage(message, &chatid)
 		if err != nil {
 			errorChan <- err
 		} else {
@@ -599,7 +609,7 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 			return err
 		}
 	case fullContent := <-resultChan:
-		err = u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
+		err := u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
 			KFID:    msginfo.KFID,
 			KHID:    msginfo.KHID,
 			Message: MarkdownToText(fullContent),

@@ -139,7 +139,7 @@ const docTemplate = `{
                 "summary": "Get KF",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "kf UUID",
                         "name": "uuid",
                         "in": "path",
@@ -169,7 +169,7 @@ const docTemplate = `{
                 "summary": "Delete KF",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "kf UUID",
                         "name": "uuid",
                         "in": "path",
@@ -199,7 +199,7 @@ const docTemplate = `{
                 "summary": "Update kf",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "kf UUID",
                         "name": "uuid",
                         "in": "path",
@@ -225,9 +225,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/maxkb/config": {
+        "/llmapp/config": {
             "get": {
-                "description": "Retrieve the current maxkb configuration",
+                "description": "Retrieve a list of all llmapp configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -235,20 +235,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "maxkb_config"
+                    "llmapp_config"
                 ],
-                "summary": "Get maxkb configuration",
+                "summary": "List llmapp configuration",
                 "responses": {
                     "200": {
-                        "description": "Current maxkb configuration",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MaxkbConf"
+                            "$ref": "#/definitions/dto.LLMAppConfig"
                         }
                     }
                 }
             },
-            "patch": {
-                "description": "Update the maxkb configuration with the provided data",
+            "post": {
+                "description": "Add a new llmapp configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -256,17 +256,81 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "maxkb_config"
+                    "llmapp"
                 ],
-                "summary": "Update maxkb configuration",
+                "summary": "Add new llmapp configuration",
                 "parameters": [
                     {
-                        "description": "maxkb configuration data",
+                        "description": "llmapp configuration data",
                         "name": "data",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.MaxkbConf"
+                            "$ref": "#/definitions/dto.LLMAppConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success response",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/llmapp/config/{uuid}": {
+            "get": {
+                "description": "Retrieve llmapp configuration by its UUID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "llmapp"
+                ],
+                "summary": "Get llmapp configuration by UUID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID of the llmapp configuration",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            },
+            "patch": {
+                "description": "Update the llmapp configuration with the provided data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "llmapp_config"
+                ],
+                "summary": "Update llmapp configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID of the llmapp configuration",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "llmapp configuration data",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.LLMAppConfig"
                         }
                     }
                 ],
@@ -350,7 +414,7 @@ const docTemplate = `{
                 "summary": "Get policy",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "policy UUID",
                         "name": "uuid",
                         "in": "path",
@@ -380,7 +444,7 @@ const docTemplate = `{
                 "summary": "Delete policy",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "policy UUID",
                         "name": "uuid",
                         "in": "path",
@@ -410,7 +474,7 @@ const docTemplate = `{
                 "summary": "Update policy",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "policy UUID",
                         "name": "uuid",
                         "in": "path",
@@ -506,7 +570,7 @@ const docTemplate = `{
                 "summary": "Get Staff",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Staff UUID",
                         "name": "uuid",
                         "in": "path",
@@ -536,7 +600,7 @@ const docTemplate = `{
                 "summary": "Delete Staff",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Staff UUID",
                         "name": "uuid",
                         "in": "path",
@@ -566,7 +630,7 @@ const docTemplate = `{
                 "summary": "Update Staff",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Staff UUID",
                         "name": "uuid",
                         "in": "path",
@@ -890,13 +954,19 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MaxkbConf": {
+        "dto.LLMAppConfig": {
             "type": "object",
             "properties": {
                 "api_key": {
                     "type": "string"
                 },
                 "base_url": {
+                    "type": "string"
+                },
+                "config_name": {
+                    "type": "string"
+                },
+                "llmapp_type": {
                     "type": "string"
                 }
             }

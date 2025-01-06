@@ -7,7 +7,7 @@ var (
 
 	authRepo   = repo.NewISettingRepo()
 	wecomRepo  = repo.NewIWecomRepo()
-	maxkbRepo  = repo.NewIMaxkbRepo()
+	llmappRepo = repo.NewILLMAppRepo()
 	kHRepo     = repo.NewIKHRepo()
 	kFRepo     = repo.NewIKFRepo()
 	policyRepo = repo.NewIPolicyRepo()

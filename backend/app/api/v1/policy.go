@@ -66,7 +66,7 @@ func (u *BaseApi) PolicyAdd(ctx *gin.Context) {
 // @Description Update the policy by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "policy UUID"
+// @Param uuid path string true "policy UUID"
 // @Param req body dto.Policy true "policy Information"
 // @Success 200 {object} dto.Response
 // @Router /policy/{uuid} [patch]
@@ -119,7 +119,7 @@ func (u *BaseApi) PolicyUpdate(ctx *gin.Context) {
 // @Description Delete the policy by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "policy UUID"
+// @Param uuid path string true "policy UUID"
 // @Success 200 {object} dto.Response
 // @Router /policy/{uuid} [delete]
 func (u *BaseApi) PolicyDel(ctx *gin.Context) {
@@ -136,7 +136,7 @@ func (u *BaseApi) PolicyDel(ctx *gin.Context) {
 // @Description Get the policy information by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "policy UUID"
+// @Param uuid path string true "policy UUID"
 // @Success 200 {object} dto.Response
 // @Router /policy/{uuid} [get]
 func (u *BaseApi) PolicyGet(ctx *gin.Context) {

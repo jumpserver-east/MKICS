@@ -43,7 +43,7 @@ func (u *BaseApi) StaffAdd(ctx *gin.Context) {
 // @Description Update the staff member by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "Staff UUID"
+// @Param uuid path string true "Staff UUID"
 // @Param req body request.Staff true "Staff Information"
 // @Success 200 {object} dto.Response
 // @Router /staff/{uuid} [patch]
@@ -66,7 +66,7 @@ func (u *BaseApi) StaffUpdate(ctx *gin.Context) {
 // @Description Delete the staff member by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "Staff UUID"
+// @Param uuid path string true "Staff UUID"
 // @Success 200 {object} dto.Response
 // @Router /staff/{uuid} [delete]
 func (u *BaseApi) StaffDel(ctx *gin.Context) {
@@ -83,7 +83,7 @@ func (u *BaseApi) StaffDel(ctx *gin.Context) {
 // @Description Get the staff information by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "Staff UUID"
+// @Param uuid path string true "Staff UUID"
 // @Success 200 {object} dto.Response
 // @Router /staff/{uuid} [get]
 func (u *BaseApi) StaffGet(ctx *gin.Context) {

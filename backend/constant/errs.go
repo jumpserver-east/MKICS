@@ -14,6 +14,7 @@ var (
 	ErrAuth            = errors.New("ErrAuth")
 	ErrInitialPassword = errors.New("ErrInitialPassword")
 	ErrRecordNotFound  = errors.New("ErrRecordNotFound")
+	ErrNotSupportType  = errors.New("ErrNotSupportType")
 	ErrInvalidParams   = errors.New("ErrInvalidParams")
 
 	ErrTokenParse = errors.New("ErrTokenParse")

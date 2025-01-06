@@ -63,7 +63,7 @@ func (u *BaseApi) KFAdd(ctx *gin.Context) {
 // @Description Update the kf by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "kf UUID"
+// @Param uuid path string true "kf UUID"
 // @Param req body request.KF true "kf Information"
 // @Success 200 {object} dto.Response
 // @Router /kf/{uuid} [patch]
@@ -112,7 +112,7 @@ func (u *BaseApi) KFUpdate(ctx *gin.Context) {
 // @Description Delete the kf by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "kf UUID"
+// @Param uuid path string true "kf UUID"
 // @Success 200 {object} dto.Response
 // @Router /kf/{uuid} [delete]
 func (u *BaseApi) KFDel(ctx *gin.Context) {
@@ -129,7 +129,7 @@ func (u *BaseApi) KFDel(ctx *gin.Context) {
 // @Description Get the kf information by UUID
 // @Accept json
 // @Produce json
-// @Param uuid path int true "kf UUID"
+// @Param uuid path string true "kf UUID"
 // @Success 200 {object} dto.Response
 // @Router /kf/{uuid} [get]
 func (u *BaseApi) KFGet(ctx *gin.Context) {
