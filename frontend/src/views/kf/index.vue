@@ -50,16 +50,16 @@ const tableConfig: ITableConfig = {
   api: `${Api.kf}`, // 使用 kf 的接口路径
   headers: [
     { prop: 'kfname', label: '客服名称' },
-    { prop: 'kfid', label: '客服 ID' },
+    // { prop: 'kfid', label: '客服 ID' },
     { prop: 'kfplatform', label: '客服平台' },
-    { prop: 'botid', label: '机器人 ID' },
+    // { prop: 'botid', label: '机器人 ID' },
     { prop: 'status', label: '接待方式', slot: 'status' },
-    { prop: 'receive_priority', label: '是否优先上一位接待人员', slot: 'receive_priority' },
+    { prop: 'receive_priority', label: '优先上一位接待人员', slot: 'receive_priority' },
     { prop: 'receive_rule', label: '接待规则', slot: 'receive_rule' },
     { prop: 'chat_timeout', label: '会话超时（秒）' },
     { prop: 'bot_timeout', label: '机器人超时（秒）' },
     { prop: 'transfer_keywords', label: '转接关键词', slot: 'transfer_keywords' },
-    { prop: 'staffs', label: '人员名称列表', slot: 'staffs' },
+    { prop: 'staffs', label: '接待人员列表', slot: 'staffs' },
   ],
   operations: {
     width: 150, // 操作列宽度

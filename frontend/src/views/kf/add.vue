@@ -17,10 +17,6 @@
                 <el-input v-model="formData.botid" placeholder="请输入机器人 ID" />
             </el-form-item>
 
-            <el-form-item label="机器人平台：" prop="botplatform">
-                <el-input v-model="formData.botplatform" placeholder="请输入机器人平台" />
-            </el-form-item>
-
             <el-form-item label="接待方式：" prop="status">
                 <el-radio-group v-model="formData.status">
                     <el-radio :label="1">机器人可转人工</el-radio>
@@ -116,7 +112,6 @@ const formData = reactive<IKF>({
     kfid: '',
     kfplatform: '',
     botid: '',
-    botplatform: '',
     status: 1,
     receive_priority: 1,
     receive_rule: 1,
