@@ -7,7 +7,7 @@ import (
 
 type LLMAppClient interface {
 	ChatMessage(message string, chatid *string) (string, error)
-	ChatOpen() (string, error)
+	ChatOpen() (*string, error)
 }
 
 func NewLLMAppClient(llmappType string, vars map[string]interface{}) (LLMAppClient, error) {

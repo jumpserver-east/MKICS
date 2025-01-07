@@ -2,6 +2,7 @@ package logic
 
 import (
 	"EvoBot/backend/app/dto"
+	"EvoBot/backend/app/dto/response"
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/global"
 	"EvoBot/backend/utils/llmapp"
@@ -17,8 +18,8 @@ type ILLMAppLogic interface {
 	ConfigAdd(req dto.LLMAppConfig) error
 	ConfigUpdate(uuid string, req dto.LLMAppConfig) error
 	ConfigDel(uuid string) error
-	ConfigGet(uuid string) (dto.LLMAppConfig, error)
-	ConfigList() ([]dto.LLMAppConfig, error)
+	ConfigGet(uuid string) (response.LLMAppConfig, error)
+	ConfigList() ([]response.LLMAppConfig, error)
 }
 
 func NewILLMAppLogic() ILLMAppLogic {
@@ -74,6 +75,7 @@ func (u *LLMAppLogic) ConfigUpdate(uuid string, req dto.LLMAppConfig) error {
 	}
 	conf.UUID = uuid
 	conf.LLMAppType = req.LLMAppType
+	conf.ConfigName = req.ConfigName
 	conf.ApiKey = req.ApiKey
 	conf.BaseURL = req.BaseURL
 	if err := llmappRepo.Update(conf); err != nil {
@@ -83,12 +85,13 @@ func (u *LLMAppLogic) ConfigUpdate(uuid string, req dto.LLMAppConfig) error {
 	return nil
 }
 
-func (u *LLMAppLogic) ConfigGet(uuid string) (dto.LLMAppConfig, error) {
+func (u *LLMAppLogic) ConfigGet(uuid string) (response.LLMAppConfig, error) {
 	conf, err := llmappRepo.Get(commonRepo.WithByUUID(uuid))
-	var resp dto.LLMAppConfig
+	var resp response.LLMAppConfig
 	if err != nil {
 		return resp, err
 	}
+	resp.UUID = conf.UUID
 	resp.LLMAppType = conf.LLMAppType
 	resp.ConfigName = conf.ConfigName
 	resp.BaseURL = conf.BaseURL
@@ -96,15 +99,16 @@ func (u *LLMAppLogic) ConfigGet(uuid string) (dto.LLMAppConfig, error) {
 	return resp, nil
 }
 
-func (u *LLMAppLogic) ConfigList() ([]dto.LLMAppConfig, error) {
+func (u *LLMAppLogic) ConfigList() ([]response.LLMAppConfig, error) {
 	configs, err := llmappRepo.List()
-	var resp []dto.LLMAppConfig
+	var resp []response.LLMAppConfig
 	if err != nil {
 		global.ZAPLOG.Error("failed to get LLMApp config", zap.Error(err))
 		return resp, err
 	}
 	for _, config := range configs {
-		var res dto.LLMAppConfig
+		var res response.LLMAppConfig
+		res.UUID = config.UUID
 		res.LLMAppType = config.LLMAppType
 		res.ConfigName = config.ConfigName
 		res.BaseURL = config.BaseURL
@@ -115,14 +119,14 @@ func (u *LLMAppLogic) ConfigList() ([]dto.LLMAppConfig, error) {
 	return resp, nil
 }
 
-func GetChatIdByKH(khid string, llmapp llmapp.LLMAppClient) (string, error) {
+func GetChatIdByKH(khid string, llmapp llmapp.LLMAppClient) (*string, error) {
 	khinfo, err := kHRepo.Get(kHRepo.WithKHID(khid))
 	if err != nil {
 		global.ZAPLOG.Error("数据库没有找到该客户信息", zap.Error(err))
 		if err := kHRepo.Create(model.KH{
 			KHID: khid,
 		}); err != nil {
-			return "", err
+			return nil, err
 		}
 		global.ZAPLOG.Info("录入客户信息:", zap.String("KHID", khid))
 	}
@@ -130,17 +134,17 @@ func GetChatIdByKH(khid string, llmapp llmapp.LLMAppClient) (string, error) {
 		global.ZAPLOG.Info("该客户没有和机器人的聊天ID", zap.String("KHID", khid))
 		newchatid, err := llmapp.ChatOpen()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		kh := model.KH{
 			KHID:   khid,
-			ChatID: newchatid,
+			ChatID: *newchatid,
 		}
 		if err := kHRepo.UpdatebyKHID(kh); err != nil {
-			return "", err
+			return nil, err
 		}
-		global.ZAPLOG.Info("生成聊天id更新客户信息:", zap.String("newchatid", newchatid), zap.String("khid", khid))
+		global.ZAPLOG.Info("生成聊天id更新客户信息:", zap.String("newchatid", *newchatid), zap.String("khid", khid))
 		return newchatid, nil
 	}
-	return khinfo.ChatID, nil
+	return &khinfo.ChatID, nil
 }

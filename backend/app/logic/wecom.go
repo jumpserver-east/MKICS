@@ -562,7 +562,11 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 		}
 		varMap["base_url"] = llmappconfig.BaseURL
 		varMap["api_key"] = llmappconfig.ApiKey
-		u.llmapp, _ = llmapp.NewLLMAppClient(llmappconfig.LLMAppType, varMap)
+		u.llmapp, err = llmapp.NewLLMAppClient(llmappconfig.LLMAppType, varMap)
+		if err != nil {
+			global.ZAPLOG.Error("error", zap.Error(err))
+			return err
+		}
 	}
 	chatid, err := GetChatIdByKH(msginfo.KHID, u.llmapp)
 	if err != nil {
@@ -574,7 +578,7 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 	errorChan := make(chan error)
 	go func() {
 		message := msginfo.Message + kfinfo.BotPrompt
-		fullContent, err := u.llmapp.ChatMessage(message, &chatid)
+		fullContent, err := u.llmapp.ChatMessage(message, chatid)
 		if err != nil {
 			errorChan <- err
 		} else {
