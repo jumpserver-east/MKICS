@@ -14,8 +14,8 @@ export enum Api {
   /** 客服应用列表 */
   kf = '/kf',
 
-  /** maxkb配置 */
-  maxkbconfig = '/maxkb/config',
+  /** llmapp配置 */
+  llmappconfig = '/llmapp/config',
 
   /** wecomreceptionist */
   wecomreceptionist = '/wecom/receptionist',

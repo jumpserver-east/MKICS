@@ -31,6 +31,14 @@ const searchConfig: Record<string, ISearchItem[]> = {
     //   hint: '请输入策略名称'
     // }
   ],
+  '/llmapp': [
+    // {
+    //   id: 'policy_name_text',
+    //   name: '策略名称',
+    //   type: 'text',
+    //   hint: '请输入策略名称'
+    // }
+  ],
   '/wecom/config': [
     // {
     //   id: 'policy_name_text',

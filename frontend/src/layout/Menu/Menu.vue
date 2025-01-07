@@ -53,10 +53,10 @@ const defaultMenu = [
     path: '/policy',
   },
   {
-    id: 'maxkb',
+    id: 'llmapp',
     name: '知识库管理',
     icon: 'Management',
-    path: '/maxkb',
+    path: '/llmapp',
   },
   {
     id: 'wecom',
