@@ -124,6 +124,12 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 						messageInfo.StaffID = sessionstatuschangeinfo.Event.NewReceptionistUserID
 					}
 					messageInfo.Credential = sessionstatuschangeinfo.Event.MsgCode
+				case WecomEventTypeMsgSendFail:
+					msgsendfailinfo, _ := msg.GetMsgSendFailEvent()
+					messageInfo.KFID = msgsendfailinfo.Event.OpenKFID
+					messageInfo.KHID = msgsendfailinfo.Event.ExternalUserID
+					messageInfo.MessageType = msgsendfailinfo.Event.EventType
+					messageInfo.Message = strconv.FormatUint(uint64(msgsendfailinfo.Event.FailType), 10)
 				default:
 					global.ZAPLOG.Info("此事件类型服务暂不处理", zap.String("EventType", msg.EventType))
 					return messageInfo, err
@@ -201,7 +207,7 @@ func (k *WecomKF) SendMenuMsg(info SendMenuMsgOptions) error {
 		MsgType string `json:"msgtype"`
 		MsgMenu struct {
 			HeadContent string     `json:"head_content,omitempty"`
-			List        []MenuItem `json:"list"`
+			MenuList    []MenuItem `json:"menuList,omitempty"`
 			TailContent string     `json:"tail_content,omitempty"`
 		} `json:"msgmenu"`
 	}{
@@ -211,7 +217,7 @@ func (k *WecomKF) SendMenuMsg(info SendMenuMsgOptions) error {
 	}
 	sendmsg.MsgMenu.HeadContent = info.HeadContent
 	sendmsg.MsgMenu.TailContent = info.TailContent
-	sendmsg.MsgMenu.List = info.MenuList
+	sendmsg.MsgMenu.MenuList = info.MenuList
 	if _, err := k.KFClient.SendMsg(sendmsg); err != nil {
 		return err
 	}
