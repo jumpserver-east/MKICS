@@ -47,6 +47,16 @@ var AddTableKH = &gormigrate.Migration{
 	},
 }
 
+var AddTableChatList = &gormigrate.Migration{
+	ID: "20241113-add-table-chat-list",
+	Migrate: func(tx *gorm.DB) error {
+		if err := tx.AutoMigrate(&model.ChatList{}); err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
 var AddTableKF = &gormigrate.Migration{
 	ID: "20241113-add-table-kf",
 	Migrate: func(tx *gorm.DB) error {

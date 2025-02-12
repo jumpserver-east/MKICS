@@ -47,9 +47,9 @@ type SendMenuMsgOptions struct {
 }
 
 type MenuMsgOptions struct {
-	HeadContent string `json:"headContent"`
-	MenuList    []MenuItem
-	TailContent string `json:"tailContent"`
+	HeadContent string     `json:"headContent,omitempty"`
+	MenuList    []MenuItem `json:"menuList,omitempty"`
+	TailContent string     `json:"tailContent,omitempty"`
 }
 
 type SendTextMsgOnEventOptions struct {

@@ -11,7 +11,7 @@ import (
 )
 
 type LLMAppLogic struct {
-	LLMAppConf dto.LLMAppConfig
+	llmAppClients map[string]llmapp.LLMAppClient
 }
 
 type ILLMAppLogic interface {
@@ -24,6 +24,109 @@ type ILLMAppLogic interface {
 
 func NewILLMAppLogic() ILLMAppLogic {
 	return &LLMAppLogic{}
+}
+
+func (u *LLMAppLogic) chatMessage(khid, uuid, message string) (string, error) {
+	if u.llmAppClients == nil {
+		u.llmAppClients = make(map[string]llmapp.LLMAppClient)
+	}
+
+	var client llmapp.LLMAppClient
+	khinfo, err := kHRepo.Get(kHRepo.WithKHID(khid))
+	if err != nil {
+		global.ZAPLOG.Error("数据库没有找到该客户信息", zap.Error(err))
+		newKH := model.KH{
+			KHID: khid,
+		}
+		if err := kHRepo.Create(newKH); err != nil {
+			return "", err
+		}
+		khinfo = newKH
+		global.ZAPLOG.Info("录入客户信息:", zap.String("KHID", khid))
+	}
+
+	var targetChatID *string
+	for _, chat := range khinfo.ChatList {
+		if chat.BotID == uuid {
+			chatIDCopy := chat.ChatID
+			targetChatID = &chatIDCopy
+			break
+		}
+	}
+
+	if targetChatID == nil {
+		global.ZAPLOG.Info("该客户没有和该机器人的聊天ID", zap.String("KHID", khid), zap.String("BotID", uuid))
+
+		client, err = u.getClient(uuid)
+		if err != nil {
+			global.ZAPLOG.Error("获取 LLMApp 客户端失败", zap.Error(err))
+			return "", err
+		}
+
+		newchatid, err := client.ChatOpen()
+		if err != nil {
+			return "", err
+		}
+
+		chatList := model.ChatList{
+			KHID:   khinfo.ID,
+			BotID:  uuid,
+			ChatID: *newchatid,
+		}
+
+		if err := kHRepo.CreateChatList(chatList); err != nil {
+			return "", err
+		}
+		if err := kHRepo.UpdatebyKHID(khinfo); err != nil {
+			return "", err
+		}
+
+		global.ZAPLOG.Info("生成聊天id更新客户信息:",
+			zap.String("newchatid", *newchatid),
+			zap.String("khid", khid),
+			zap.String("botid", uuid))
+		targetChatID = newchatid
+	} else {
+		client, err = u.getClient(uuid)
+		if err != nil {
+			global.ZAPLOG.Error("获取 LLMApp 客户端失败", zap.Error(err))
+			return "", err
+		}
+	}
+
+	fullContent, err := client.ChatMessage(message, targetChatID)
+	if err != nil {
+		return "", err
+	}
+	return fullContent, nil
+}
+
+func (u *LLMAppLogic) getClient(uuid string) (llmapp.LLMAppClient, error) {
+	if u.llmAppClients == nil {
+		u.llmAppClients = make(map[string]llmapp.LLMAppClient)
+	}
+
+	if client, ok := u.llmAppClients[uuid]; ok {
+		return client, nil
+	}
+
+	conf, err := llmappRepo.Get(commonRepo.WithByUUID(uuid))
+	if err != nil {
+		return nil, err
+	}
+
+	varMap := make(map[string]interface{})
+	varMap["base_url"] = conf.BaseURL
+	varMap["api_key"] = conf.ApiKey
+
+	client, err := llmapp.NewLLMAppClient(conf.LLMAppType, varMap)
+	if err != nil {
+		global.ZAPLOG.Error("创建 LLMApp 客户端失败", zap.Error(err))
+		return nil, err
+	}
+
+	u.llmAppClients[uuid] = client
+	return client, nil
 }
 
 func (u *LLMAppLogic) ConfigAdd(req dto.LLMAppConfig) error {
@@ -54,6 +157,9 @@ func (u *LLMAppLogic) ConfigDel(uuid string) error {
 		}
 	}()
 	defer tx.Rollback()
+
+	delete(u.llmAppClients, uuid)
+
 	if err := llmappRepo.Delete(commonRepo.WithByUUID(uuid)); err != nil {
 		return err
 	}
@@ -62,13 +168,6 @@ func (u *LLMAppLogic) ConfigDel(uuid string) error {
 }
 
 func (u *LLMAppLogic) ConfigUpdate(uuid string, req dto.LLMAppConfig) error {
-	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	defer tx.Rollback()
 	conf, err := llmappRepo.Get(commonRepo.WithByUUID(uuid))
 	if err != nil {
 		return err
@@ -81,7 +180,17 @@ func (u *LLMAppLogic) ConfigUpdate(uuid string, req dto.LLMAppConfig) error {
 	if err := llmappRepo.Update(conf); err != nil {
 		return err
 	}
-	tx.Commit()
+
+	varMap := make(map[string]interface{})
+	varMap["base_url"] = req.BaseURL
+	varMap["api_key"] = req.ApiKey
+	client, err := llmapp.NewLLMAppClient(req.LLMAppType, varMap)
+	if err != nil {
+		global.ZAPLOG.Error("更新 LLMApp 客户端失败", zap.Error(err))
+		return err
+	}
+	u.llmAppClients[uuid] = client
+
 	return nil
 }
 
@@ -117,34 +226,4 @@ func (u *LLMAppLogic) ConfigList() ([]response.LLMAppConfig, error) {
 	}
 
 	return resp, nil
-}
-
-func GetChatIdByKH(khid string, llmapp llmapp.LLMAppClient) (*string, error) {
-	khinfo, err := kHRepo.Get(kHRepo.WithKHID(khid))
-	if err != nil {
-		global.ZAPLOG.Error("数据库没有找到该客户信息", zap.Error(err))
-		if err := kHRepo.Create(model.KH{
-			KHID: khid,
-		}); err != nil {
-			return nil, err
-		}
-		global.ZAPLOG.Info("录入客户信息:", zap.String("KHID", khid))
-	}
-	if khinfo.ChatID == "" {
-		global.ZAPLOG.Info("该客户没有和机器人的聊天ID", zap.String("KHID", khid))
-		newchatid, err := llmapp.ChatOpen()
-		if err != nil {
-			return nil, err
-		}
-		kh := model.KH{
-			KHID:   khid,
-			ChatID: *newchatid,
-		}
-		if err := kHRepo.UpdatebyKHID(kh); err != nil {
-			return nil, err
-		}
-		global.ZAPLOG.Info("生成聊天id更新客户信息:", zap.String("newchatid", *newchatid), zap.String("khid", khid))
-		return newchatid, nil
-	}
-	return &khinfo.ChatID, nil
 }

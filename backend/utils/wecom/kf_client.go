@@ -8,7 +8,7 @@ import (
 type WecomKFClient interface {
 	VerifyURL(options client.SignatureOptions) (string, error)
 
-	SyncMsg(body []byte) (client.MessageInfo, error)
+	SyncMsg(body []byte, streamcallback func(*client.MessageInfo)) (client.MessageInfo, error)
 
 	SendTextMsg(info client.SendTextMsgOptions) error
 	SendMenuMsg(info client.SendMenuMsgOptions) error

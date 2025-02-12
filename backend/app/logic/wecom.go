@@ -7,7 +7,6 @@ import (
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/constant"
 	"EvoBot/backend/global"
-	"EvoBot/backend/utils/llmapp"
 	"EvoBot/backend/utils/wecom"
 	wecomclient "EvoBot/backend/utils/wecom/client"
 	"fmt"
@@ -21,7 +20,7 @@ import (
 
 type WecomLogic struct {
 	wecomkf wecom.WecomKFClient
-	llmapp  llmapp.LLMAppClient
+	LLMAppLogic
 }
 
 type IWecomLogic interface {
@@ -131,26 +130,30 @@ func (u *WecomLogic) Handle(body []byte) error {
 	if err := u.initializeWecomClient(); err != nil {
 		return err
 	}
-	msginfo, err := u.wecomkf.SyncMsg(body)
+	streamCallback := func(msginfo *wecomclient.MessageInfo) {
+		if msginfo.MessageID != "" || msginfo.SendTime != 0 || msginfo.Origin != 0 || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.ChatState != 0 {
+			global.ZAPLOG.Info("MessageInfo 内容:",
+				zap.Any("MessageID", msginfo.MessageID),
+				zap.Any("SendTime", msginfo.SendTime),
+				zap.Any("Origin", msginfo.Origin),
+				zap.Any("KFID", msginfo.KFID),
+				zap.Any("KHID", msginfo.KHID),
+				zap.Any("StaffID", msginfo.StaffID),
+				zap.Any("Message", msginfo.Message),
+				zap.Any("MessageType", msginfo.MessageType),
+				zap.Any("Credential", msginfo.Credential),
+				zap.Any("ChatState", msginfo.ChatState),
+			)
+		}
+		u.processMessage(*msginfo)
+	}
+	_, err := u.wecomkf.SyncMsg(body, streamCallback)
 	if err != nil {
 		global.ZAPLOG.Error("failed SyncMsg", zap.Error(err))
 		return err
 	}
-	if msginfo.MessageID != "" || msginfo.SendTime != 0 || msginfo.Origin != 0 || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.ChatState != 0 {
-		global.ZAPLOG.Info("MessageInfo 内容:",
-			zap.Any("MessageID", msginfo.MessageID),
-			zap.Any("SendTime", msginfo.SendTime),
-			zap.Any("Origin", msginfo.Origin),
-			zap.Any("KFID", msginfo.KFID),
-			zap.Any("KHID", msginfo.KHID),
-			zap.Any("StaffID", msginfo.StaffID),
-			zap.Any("Message", msginfo.Message),
-			zap.Any("MessageType", msginfo.MessageType),
-			zap.Any("Credential", msginfo.Credential),
-			zap.Any("ChatState", msginfo.ChatState),
-		)
-	}
-	return u.processMessage(msginfo)
+
+	return nil
 }
 
 func (u *WecomLogic) ReceptionistAdd(kfid string, req request.ReceptionistOptions) error {
@@ -554,31 +557,13 @@ func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo, kfinfo mo
 }
 
 func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
-	if u.llmapp == nil {
-		varMap := make(map[string]interface{})
-		llmappconfig, err := llmappRepo.Get(commonRepo.WithByUUID(kfinfo.BotID))
-		if err != nil {
-			return err
-		}
-		varMap["base_url"] = llmappconfig.BaseURL
-		varMap["api_key"] = llmappconfig.ApiKey
-		u.llmapp, err = llmapp.NewLLMAppClient(llmappconfig.LLMAppType, varMap)
-		if err != nil {
-			global.ZAPLOG.Error("error", zap.Error(err))
-			return err
-		}
-	}
-	chatid, err := GetChatIdByKH(msginfo.KHID, u.llmapp)
-	if err != nil {
-		return err
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(kfinfo.BotTimeout)*time.Second)
 	defer cancel()
 	resultChan := make(chan string)
 	errorChan := make(chan error)
 	go func() {
 		message := msginfo.Message + kfinfo.BotPrompt
-		fullContent, err := u.llmapp.ChatMessage(message, chatid)
+		fullContent, err := u.chatMessage(msginfo.KHID, kfinfo.BotID, message)
 		if err != nil {
 			errorChan <- err
 		} else {

@@ -15,6 +15,8 @@ type IKHRepo interface {
 	Create(kh model.KH) error
 	UpdatebyID(kh model.KH) error
 	UpdatebyKHID(kh model.KH) error
+
+	CreateChatList(chatlist model.ChatList) error
 }
 
 func NewIKHRepo() IKHRepo {
@@ -27,6 +29,7 @@ func (r *KHRepo) Get(opts ...DBOption) (model.KH, error) {
 	for _, opt := range opts {
 		db = opt(db)
 	}
+	db = db.Preload("ChatList")
 	if err := db.First(&kh).Error; err != nil {
 		return kh, err
 	}
@@ -53,4 +56,8 @@ func (r *KHRepo) UpdatebyKHID(kh model.KH) error {
 	return global.DB.Model(&model.KH{}).
 		Where("khid = ?", kh.KHID).
 		Updates(kh).Error
+}
+
+func (r *KHRepo) CreateChatList(chatlist model.ChatList) error {
+	return global.DB.Create(&chatlist).Error
 }

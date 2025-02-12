@@ -13,6 +13,7 @@ func Init() {
 		migrations.AddTableMaxkbConf,
 		migrations.AddTableWecomConf,
 		migrations.AddTableKH,
+		migrations.AddTableChatList,
 		migrations.AddTableKF,
 		migrations.AddTableWorkTime,
 		migrations.AddTablePolicy,

@@ -2,7 +2,14 @@ package model
 
 type KH struct {
 	BaseModel
-	KHID    string `gorm:"uniqueIndex;column:khid;type:varchar(255);not null;" json:"khid"`
-	ChatID  string `gorm:"column:chatid;type:varchar(255);" json:"chatid"`
-	StaffID string `gorm:"column:staffid;" json:"staffid"`
+	KHID     string     `gorm:"uniqueIndex;column:khid;type:varchar(255);not null;" json:"khid"`
+	StaffID  string     `gorm:"column:staffid;" json:"staffid"`
+	ChatList []ChatList `gorm:"foreignKey:KHID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+}
+
+type ChatList struct {
+	BaseModel
+	KHID   uint   `gorm:"column:kh_id"`
+	BotID  string `gorm:"column:botid;type:varchar(255);not null;" json:"botid"`
+	ChatID string `gorm:"column:chatid;type:varchar(255);not null;" json:"chatid"`
 }

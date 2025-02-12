@@ -37,14 +37,14 @@ func (k *WecomKF) VerifyURL(options SignatureOptions) (string, error) {
 	return echo, nil
 }
 
-func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
+func (k *WecomKF) SyncMsg(body []byte, streamcallback func(*MessageInfo)) (MessageInfo, error) {
 	var messageInfo MessageInfo
 	callbackMessage, err := k.KFClient.GetCallbackMessage(body)
 	if callbackMessage.MsgType == "event" && callbackMessage.Event == "kf_msg_or_event" && err == nil {
 		var syncMsgOptions kf.SyncMsgOptions
 		syncMsgOptions.OpenKfID = callbackMessage.OpenKfID
 		syncMsgOptions.Token = callbackMessage.Token
-		syncMsgOptions.Limit = 1 //期望请求的数据量
+		syncMsgOptions.Limit = 1
 		wecomcursorkey := KeyWecomCursorPrefix + callbackMessage.OpenKfID
 		exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
 		if err != nil {
@@ -55,6 +55,12 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 			if err != nil {
 				global.ZAPLOG.Error("failed to get wecomcursorkey", zap.Error(err))
 			}
+			if wecomcursorvalue == "" {
+				return messageInfo, nil
+			}
+			if err := global.RDS.Set(context.Background(), wecomcursorkey, "", 0).Err(); err != nil {
+				global.ZAPLOG.Error("failed to set empty wecomcursorkey", zap.Error(err))
+			}
 			syncMsgOptions.Cursor = wecomcursorvalue
 		}
 		message, err := k.KFClient.SyncMsg(syncMsgOptions)
@@ -64,6 +70,8 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 		if err = global.RDS.Set(context.Background(), wecomcursorkey, message.NextCursor, 0).Err(); err != nil {
 			return messageInfo, err
 		}
+		messageInfo, err = k.HandleMsg(message)
+		streamcallback(&messageInfo)
 		for message.HasMore == 1 {
 			global.ZAPLOG.Info("HasMore")
 			exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
@@ -74,6 +82,12 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 				wecomcursorvalue, err := global.RDS.Get(context.Background(), wecomcursorkey).Result()
 				if err != nil {
 					global.ZAPLOG.Error("failed to get wecomcursorkey", zap.Error(err))
+				}
+				if wecomcursorvalue == "" {
+					return messageInfo, nil
+				}
+				if err := global.RDS.Set(context.Background(), wecomcursorkey, "", 0).Err(); err != nil {
+					global.ZAPLOG.Error("failed to set empty wecomcursorkey", zap.Error(err))
 				}
 				syncMsgOptions.Cursor = wecomcursorvalue
 			}
@@ -86,79 +100,85 @@ func (k *WecomKF) SyncMsg(body []byte) (MessageInfo, error) {
 			}
 			message.MsgList = append(message.MsgList, messageMore.MsgList...)
 			message.HasMore = messageMore.HasMore
-		}
-		if len(message.MsgList) > 0 {
-			global.ZAPLOG.Info("len list", zap.Any("len list", len(message.MsgList)))
-			msg := message.MsgList[0]
-			messageInfo.MessageID = msg.MsgID
-			messageInfo.Origin = msg.Origin
-			messageInfo.SendTime = msg.SendTime
-			if msg.Origin == MessageTypeReceptionistMessage {
-				messageInfo.StaffID = msg.ReceptionistUserID
-			}
-			switch msg.MsgType {
-			case WecomMsgTypeText:
-				messageInfo.KFID = msg.OpenKFID
-				messageInfo.KHID = msg.ExternalUserID
-				textmsg, _ := msg.GetTextMessage()
-				messageInfo.MessageType = textmsg.MsgType
-				messageInfo.Message = textmsg.Text.Content
-			case WecomMsgTypeEvent:
-				switch msg.EventType {
-				case WecomEventTypeEnterSession:
-					entersessioninfo, _ := msg.GetEnterSessionEvent()
-					messageInfo.KFID = entersessioninfo.Event.OpenKFID
-					messageInfo.KHID = entersessioninfo.Event.ExternalUserID
-					messageInfo.MessageType = entersessioninfo.Event.EventType
-					messageInfo.Credential = entersessioninfo.Event.WelcomeCode
-				case WecomEventTypeSessionStatusChange:
-					sessionstatuschangeinfo, _ := msg.GetSessionStatusChangeEvent()
-					messageInfo.KFID = sessionstatuschangeinfo.OpenKFID
-					messageInfo.KHID = sessionstatuschangeinfo.ExternalUserID
-					messageInfo.Message = strconv.FormatUint(uint64(sessionstatuschangeinfo.Event.ChangeType), 10)
-					messageInfo.MessageType = sessionstatuschangeinfo.Event.EventType
-					if sessionstatuschangeinfo.Event.OldReceptionistUserID != "" {
-						messageInfo.StaffID = sessionstatuschangeinfo.Event.OldReceptionistUserID
-					}
-					if sessionstatuschangeinfo.Event.NewReceptionistUserID != "" {
-						messageInfo.StaffID = sessionstatuschangeinfo.Event.NewReceptionistUserID
-					}
-					messageInfo.Credential = sessionstatuschangeinfo.Event.MsgCode
-				case WecomEventTypeMsgSendFail:
-					msgsendfailinfo, _ := msg.GetMsgSendFailEvent()
-					messageInfo.KFID = msgsendfailinfo.Event.OpenKFID
-					messageInfo.KHID = msgsendfailinfo.Event.ExternalUserID
-					messageInfo.MessageType = msgsendfailinfo.Event.EventType
-					messageInfo.Message = strconv.FormatUint(uint64(msgsendfailinfo.Event.FailType), 10)
-				default:
-					global.ZAPLOG.Info("此事件类型服务暂不处理", zap.String("EventType", msg.EventType))
-					return messageInfo, err
-				}
-			default:
-				global.ZAPLOG.Info("此消息类型服务暂不处理", zap.String("MsgType", msg.MsgType))
-				return messageInfo, err
-			}
-			statusinfo, _ := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
-				OpenKFID:       messageInfo.KFID,
-				ExternalUserID: messageInfo.KHID,
-			})
-			if statusinfo.ServiceState == SessionStatusNew {
-				_, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
-					OpenKFID:       msg.OpenKFID,
-					ExternalUserID: msg.ExternalUserID,
-					ServiceState:   SessionStatusHandled,
-				})
-				if err != nil {
-					return messageInfo, err
-				}
-				statusinfo.ServiceState = SessionStatusHandled
-			}
-			messageInfo.ChatState = statusinfo.ServiceState
-			return messageInfo, nil
+			messageInfo, _ = k.HandleMsg(messageMore)
+			streamcallback(&messageInfo)
 		}
 		return messageInfo, err
 	}
 	return messageInfo, err
+}
+
+func (k *WecomKF) HandleMsg(message kf.SyncMsgSchema) (MessageInfo, error) {
+	var messageInfo MessageInfo
+	if len(message.MsgList) > 0 {
+		msg := message.MsgList[0]
+		messageInfo.MessageID = msg.MsgID
+		messageInfo.Origin = msg.Origin
+		messageInfo.SendTime = msg.SendTime
+		switch msg.MsgType {
+		case WecomMsgTypeText:
+			messageInfo.KFID = msg.OpenKFID
+			messageInfo.KHID = msg.ExternalUserID
+			textmsg, _ := msg.GetTextMessage()
+			if msg.Origin == MessageTypeReceptionistMessage {
+				messageInfo.StaffID = textmsg.ReceptionistUserID
+			}
+			messageInfo.MessageType = textmsg.MsgType
+			messageInfo.Message = textmsg.Text.Content
+		case WecomMsgTypeEvent:
+			switch msg.EventType {
+			case WecomEventTypeEnterSession:
+				entersessioninfo, _ := msg.GetEnterSessionEvent()
+				messageInfo.KFID = entersessioninfo.Event.OpenKFID
+				messageInfo.KHID = entersessioninfo.Event.ExternalUserID
+				messageInfo.MessageType = entersessioninfo.Event.EventType
+				messageInfo.Credential = entersessioninfo.Event.WelcomeCode
+			case WecomEventTypeSessionStatusChange:
+				sessionstatuschangeinfo, _ := msg.GetSessionStatusChangeEvent()
+				messageInfo.KFID = sessionstatuschangeinfo.OpenKFID
+				messageInfo.KHID = sessionstatuschangeinfo.ExternalUserID
+				messageInfo.Message = strconv.FormatUint(uint64(sessionstatuschangeinfo.Event.ChangeType), 10)
+				messageInfo.MessageType = sessionstatuschangeinfo.Event.EventType
+				if sessionstatuschangeinfo.Event.OldReceptionistUserID != "" {
+					messageInfo.StaffID = sessionstatuschangeinfo.Event.OldReceptionistUserID
+				}
+				if sessionstatuschangeinfo.Event.NewReceptionistUserID != "" {
+					messageInfo.StaffID = sessionstatuschangeinfo.Event.NewReceptionistUserID
+				}
+				messageInfo.Credential = sessionstatuschangeinfo.Event.MsgCode
+			case WecomEventTypeMsgSendFail:
+				msgsendfailinfo, _ := msg.GetMsgSendFailEvent()
+				messageInfo.KFID = msgsendfailinfo.Event.OpenKFID
+				messageInfo.KHID = msgsendfailinfo.Event.ExternalUserID
+				messageInfo.MessageType = msgsendfailinfo.Event.EventType
+				messageInfo.Message = strconv.FormatUint(uint64(msgsendfailinfo.Event.FailType), 10)
+			default:
+				global.ZAPLOG.Info("此事件类型服务暂不处理", zap.String("EventType", msg.EventType))
+				return messageInfo, nil
+			}
+		default:
+			global.ZAPLOG.Info("此消息类型服务暂不处理", zap.String("MsgType", msg.MsgType))
+			return messageInfo, nil
+		}
+		statusinfo, _ := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
+			OpenKFID:       messageInfo.KFID,
+			ExternalUserID: messageInfo.KHID,
+		})
+		if statusinfo.ServiceState == SessionStatusNew {
+			_, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
+				OpenKFID:       msg.OpenKFID,
+				ExternalUserID: msg.ExternalUserID,
+				ServiceState:   SessionStatusHandled,
+			})
+			if err != nil {
+				return messageInfo, err
+			}
+			statusinfo.ServiceState = SessionStatusHandled
+		}
+		messageInfo.ChatState = statusinfo.ServiceState
+		return messageInfo, nil
+	}
+	return messageInfo, nil
 }
 
 func (k *WecomKF) SendTextMsg(info SendTextMsgOptions) error {
