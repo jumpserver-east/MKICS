@@ -21,7 +21,6 @@ func Init() {
 		migrations.AddTableStaffPolicy,
 	})
 	if err := m.Migrate(); err != nil {
-		global.ZAPLOG.Error(err.Error())
 		panic(err)
 	}
 	global.ZAPLOG.Info("Migration run successfully")
