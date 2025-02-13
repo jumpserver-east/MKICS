@@ -29,14 +29,33 @@ func SuccessWithOutData(ctx *gin.Context) {
 	ctx.Abort()
 }
 
+func SuccessWithMsg(ctx *gin.Context, msg string) {
+	res := dto.Response{
+		Code:    constant.CodeSuccess,
+		Message: msg,
+	}
+	ctx.JSON(http.StatusOK, res)
+	ctx.Abort()
+}
+
 func ErrResponse(ctx *gin.Context, code int) {
 	ctx.JSON(code, nil)
 	ctx.Abort()
 }
+
 func ErrResponseWithErr(ctx *gin.Context, code int, err error) {
 	res := dto.Response{
 		Code:    code,
 		Message: err.Error(),
+	}
+	ctx.JSON(code, res)
+	ctx.Abort()
+}
+
+func ErrResponseWithMsg(ctx *gin.Context, code int, msg string) {
+	res := dto.Response{
+		Code:    code,
+		Message: msg,
 	}
 	ctx.JSON(code, res)
 	ctx.Abort()
