@@ -23,14 +23,12 @@ type ILLMAppLogic interface {
 }
 
 func NewILLMAppLogic() ILLMAppLogic {
-	return &LLMAppLogic{}
+	return &LLMAppLogic{
+		llmAppClients: make(map[string]llmapp.LLMAppClient),
+	}
 }
 
 func (u *LLMAppLogic) chatMessage(khid, uuid, message string) (string, error) {
-	if u.llmAppClients == nil {
-		u.llmAppClients = make(map[string]llmapp.LLMAppClient)
-	}
-
 	var client llmapp.LLMAppClient
 	khinfo, err := kHRepo.Get(kHRepo.WithKHID(khid))
 	if err != nil {
@@ -190,7 +188,7 @@ func (u *LLMAppLogic) ConfigUpdate(uuid string, req dto.LLMAppConfig) error {
 		return err
 	}
 	u.llmAppClients[uuid] = client
-
+	kHRepo.DeleteChatListWithBotID(uuid)
 	return nil
 }
 

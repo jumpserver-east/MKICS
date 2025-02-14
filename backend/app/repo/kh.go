@@ -16,6 +16,7 @@ type IKHRepo interface {
 	UpdatebyID(kh model.KH) error
 	UpdatebyKHID(kh model.KH) error
 
+	DeleteChatListWithBotID(botid string) error
 	CreateChatList(chatlist model.ChatList) error
 }
 
@@ -56,6 +57,10 @@ func (r *KHRepo) UpdatebyKHID(kh model.KH) error {
 	return global.DB.Model(&model.KH{}).
 		Where("khid = ?", kh.KHID).
 		Updates(kh).Error
+}
+
+func (r *KHRepo) DeleteChatListWithBotID(botid string) error {
+	return global.DB.Where("botid = ?", botid).Delete(&model.ChatList{}).Error
 }
 
 func (r *KHRepo) CreateChatList(chatlist model.ChatList) error {

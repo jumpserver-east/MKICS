@@ -4,6 +4,7 @@ type DBContext string
 
 // WebUrlMap 定义前端路由映射
 var WebUrlMap = map[string]struct{}{
+	"/login":              {},
 	"/home":               {},
 	"/policy":             {},
 	"/staff":              {},
