@@ -65,6 +65,14 @@ func (k *WecomKF) SyncMsg(body []byte, streamcallback func(*MessageInfo)) (Messa
 		}
 		message, err := k.KFClient.SyncMsg(syncMsgOptions)
 		if err != nil {
+			if err = global.RDS.Set(context.Background(), wecomcursorkey, syncMsgOptions.Cursor, 0).Err(); err != nil {
+				global.ZAPLOG.Error("recovery wecomcursorvalue failed", zap.Error(err))
+				global.ZAPLOG.Info("please recovery wecomcursorvalue",
+					zap.String("wecomcursorkey", wecomcursorkey),
+					zap.String("wecomcursorvalue", syncMsgOptions.Cursor))
+				return messageInfo, err
+			}
+			global.ZAPLOG.Info("recovery wecomcursorvalue success")
 			return messageInfo, err
 		}
 		if err = global.RDS.Set(context.Background(), wecomcursorkey, message.NextCursor, 0).Err(); err != nil {
@@ -73,7 +81,7 @@ func (k *WecomKF) SyncMsg(body []byte, streamcallback func(*MessageInfo)) (Messa
 		messageInfo, err = k.HandleMsg(message)
 		streamcallback(&messageInfo)
 		for message.HasMore == 1 {
-			global.ZAPLOG.Info("HasMore")
+			global.ZAPLOG.Debug("HasMore")
 			exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
 			if err != nil {
 				global.ZAPLOG.Error("failed to check key existence", zap.Error(err))
