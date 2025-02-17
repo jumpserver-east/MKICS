@@ -132,7 +132,7 @@ func (u *WecomLogic) Handle(body []byte) error {
 	}
 	streamCallback := func(msginfo *wecomclient.MessageInfo) {
 		if msginfo.MessageID != "" || msginfo.SendTime != 0 || msginfo.Origin != 0 || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.ChatState != 0 {
-			global.ZAPLOG.Info("MessageInfo 内容:",
+			global.ZAPLOG.Debug("MessageInfo 内容:",
 				zap.Any("MessageID", msginfo.MessageID),
 				zap.Any("SendTime", msginfo.SendTime),
 				zap.Any("Origin", msginfo.Origin),
@@ -352,7 +352,7 @@ func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
 
 func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, staffid string, kfinfo model.KF) error {
 	if msginfo.ChatState != wecomclient.SessionStatusInProgress {
-		global.ZAPLOG.Info("变更微信客服会话状态")
+		global.ZAPLOG.Info("变更微信客服会话状态由选出的接待人员接待")
 		staffcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
 			OpenKFID:       msginfo.KFID,
 			ExternalUserID: msginfo.KHID,
@@ -376,7 +376,7 @@ func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, s
 			return err
 		}
 	}
-	global.ZAPLOG.Info("更新客户的上一次接待人员")
+	global.ZAPLOG.Info("更新客户的上一次接待人员为选出的接待人员")
 	if err := kHRepo.UpdatebyKHID(model.KH{
 		KHID:    msginfo.KHID,
 		StaffID: staffid,
@@ -517,7 +517,7 @@ func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfin
 		}
 		selectedstaff, staffweightvalue := getHighestWeightStaff(staffIDs)
 		if selectedstaff != "" {
-			global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", selectedstaff), zap.Int("权重", staffweightvalue))
+			global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", selectedstaff), zap.Int("当前权重", staffweightvalue))
 			return u.handleSuccessfulTransfer(msginfo, selectedstaff, kfinfo)
 		}
 		global.ZAPLOG.Info("没有找到空闲的接待人员")
