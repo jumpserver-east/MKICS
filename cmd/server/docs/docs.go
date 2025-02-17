@@ -1052,9 +1052,6 @@ const docTemplate = `{
                 "botid": {
                     "type": "string"
                 },
-                "botplatform": {
-                    "type": "string"
-                },
                 "chat_timeout": {
                     "type": "integer"
                 },

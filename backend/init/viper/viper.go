@@ -20,7 +20,7 @@ func Init(configPath string) {
 
 	viper.WatchConfig()
 	viper.OnConfigChange(func(in fsnotify.Event) {
-		fmt.Println("config file changed ...")
+		global.ZAPLOG.Info("config file changed ...")
 		if err := viper.Unmarshal(&global.CONF); err != nil {
 			panic(fmt.Errorf("viper.Unmarshal failed, err: %s ", err))
 		}
