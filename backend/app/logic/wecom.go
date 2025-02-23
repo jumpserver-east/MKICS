@@ -20,7 +20,6 @@ import (
 
 type WecomLogic struct {
 	wecomkf wecom.WecomKFClient
-	LLMAppLogic
 }
 
 type IWecomLogic interface {
@@ -563,7 +562,8 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 	errorChan := make(chan error)
 	go func() {
 		message := msginfo.Message + kfinfo.BotPrompt
-		fullContent, err := u.chatMessage(msginfo.KHID, kfinfo.BotID, message)
+		llmappLogic := NewILLMAppLogic()
+		fullContent, err := llmappLogic.ChatMessage(msginfo.KHID, kfinfo.BotID, message)
 		if err != nil {
 			errorChan <- err
 		} else {

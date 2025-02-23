@@ -20,6 +20,8 @@ type ILLMAppLogic interface {
 	ConfigDel(uuid string) error
 	ConfigGet(uuid string) (response.LLMAppConfig, error)
 	ConfigList() ([]response.LLMAppConfig, error)
+
+	ChatMessage(khid, uuid, message string) (string, error)
 }
 
 func NewILLMAppLogic() ILLMAppLogic {
@@ -28,7 +30,7 @@ func NewILLMAppLogic() ILLMAppLogic {
 	}
 }
 
-func (u *LLMAppLogic) chatMessage(khid, uuid, message string) (string, error) {
+func (u *LLMAppLogic) ChatMessage(khid, uuid, message string) (string, error) {
 	var client llmapp.LLMAppClient
 	khinfo, err := kHRepo.Get(kHRepo.WithKHID(khid))
 	if err != nil {
