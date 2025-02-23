@@ -4,7 +4,7 @@ func commonGroups() []CommonRouter {
 	return []CommonRouter{
 		&BaseRouter{},
 		&WecomRouter{},
-		&MaxkbRouter{},
+		&LLMAppRouter{},
 		&KFRouter{},
 		&StaffRouter{},
 		&PolicyRouter{},

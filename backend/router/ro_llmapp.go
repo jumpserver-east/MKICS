@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type MaxkbRouter struct {
+type LLMAppRouter struct {
 }
 
-func (s *MaxkbRouter) InitRouter(Router *gin.RouterGroup) {
+func (s *LLMAppRouter) InitRouter(Router *gin.RouterGroup) {
 	llmappRouter := Router.Group("llmapp").Use(middleware.AuthRequired())
 	baseApi := v1.ApiGroupApp.BaseApi
 	{
