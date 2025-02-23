@@ -103,9 +103,7 @@ func (b *BaseApi) WecomHandle(ctx *gin.Context) {
 		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
 		return
 	}
-	go func() {
-		wecomLogic.Handle(body)
-	}()
+	go wecomLogic.Handle(body)
 	helper.SuccessWithOutData(ctx)
 }
 
