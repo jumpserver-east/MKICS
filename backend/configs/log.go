@@ -1,6 +1,7 @@
 package configs
 
 type LogConfig struct {
+	Lang       string `mapstructure:"lang"`
 	Model      string `mapstructure:"model"`
 	Level      string `mapstructure:"level"`
 	Filename   string `mapstructure:"filename"`

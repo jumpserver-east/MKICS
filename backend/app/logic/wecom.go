@@ -7,6 +7,7 @@ import (
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/constant"
 	"EvoBot/backend/global"
+	"EvoBot/backend/i18n"
 	"EvoBot/backend/utils/wecom"
 	wecomclient "EvoBot/backend/utils/wecom/client"
 	"fmt"
@@ -19,12 +20,12 @@ import (
 )
 
 type WecomLogic struct {
-	wecomkf wecom.WecomKFClient
+	wecomkf *wecomclient.WecomKF
 }
 
 type IWecomLogic interface {
 	VerifyURL(req dto.SignatureOptions) (string, error)
-	Handle(body []byte) error
+	CallbackHandler(encryptedMsg []byte) (err error)
 
 	ConfigList() ([]response.WecomConfigApp, error)
 	ConfigUpdate(uuid string, req request.WecomConfigApp) error
@@ -109,50 +110,73 @@ func (u *WecomLogic) ConfigList() ([]response.WecomConfigApp, error) {
 	return resp, nil
 }
 
-func (u *WecomLogic) VerifyURL(req dto.SignatureOptions) (string, error) {
-	if err := u.initializeWecomClient(); err != nil {
-		return "", err
+func (u *WecomLogic) VerifyURL(req dto.SignatureOptions) (echo string, err error) {
+	if err = u.initializeWecomClient(); err != nil {
+		return
 	}
-	echo, err := u.wecomkf.VerifyURL(wecomclient.SignatureOptions{
-		Signature: req.Signature,
-		TimeStamp: req.TimeStamp,
-		Nonce:     req.Nonce,
-		EchoStr:   req.EchoStr,
-	})
-	if err != nil {
-		global.ZAPLOG.Error("failed to check url", zap.Error(err))
-	}
-	return echo, nil
+	return u.wecomkf.VerifyURL(wecomclient.SignatureOptions{SignatureOptions: req.SignatureOptions.SignatureOptions})
 }
 
-func (u *WecomLogic) Handle(body []byte) error {
-	if err := u.initializeWecomClient(); err != nil {
-		return err
+func (u *WecomLogic) CallbackHandler(encryptedMsg []byte) (err error) {
+	if err = u.initializeWecomClient(); err != nil {
+		return
 	}
-	streamCallback := func(msginfo *wecomclient.MessageInfo) {
-		if msginfo.MessageID != "" || msginfo.SendTime != 0 || msginfo.Origin != 0 || msginfo.KFID != "" || msginfo.KHID != "" || msginfo.StaffID != "" || msginfo.Message != "" || msginfo.MessageType != "" || msginfo.Credential != "" || msginfo.ChatState != 0 {
-			global.ZAPLOG.Debug("MessageInfo 内容:",
-				zap.Any("MessageID", msginfo.MessageID),
-				zap.Any("SendTime", msginfo.SendTime),
-				zap.Any("Origin", msginfo.Origin),
-				zap.Any("KFID", msginfo.KFID),
-				zap.Any("KHID", msginfo.KHID),
-				zap.Any("StaffID", msginfo.StaffID),
-				zap.Any("Message", msginfo.Message),
-				zap.Any("MessageType", msginfo.MessageType),
-				zap.Any("Credential", msginfo.Credential),
-				zap.Any("ChatState", msginfo.ChatState),
-			)
-		}
-		u.processMessage(*msginfo)
-	}
-	_, err := u.wecomkf.SyncMsg(body, streamCallback)
+	callbackmessage, err := u.wecomkf.KFClient.GetCallbackMessage(encryptedMsg)
 	if err != nil {
-		global.ZAPLOG.Error("failed SyncMsg", zap.Error(err))
-		return err
+		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "GetCallbackMessage"), zap.Error(err))
+		return
 	}
+	switch callbackmessage.MsgType {
+	case wecomclient.WecomCallbackMsgTypeEvent:
+		switch callbackmessage.Event {
+		case wecomclient.WecomCallbackEventKFMsgOrEvent:
+			go func() {
+				var options wecomclient.SyncMsgOptions
+				options.Token = callbackmessage.Token
+				options.OpenKfID = callbackmessage.OpenKfID
+				if err := u.SyncMsg(options); err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SyncMsgs"), zap.Error(err))
+					return
+				}
+			}()
+		default:
+			global.ZAPLOG.Error(i18n.T("wecom.unknow_event_type"), zap.Error(err))
+		}
+	default:
+		global.ZAPLOG.Error(i18n.T("wecom.unknow_msgtype"), zap.Error(err))
+	}
+	return
+}
 
-	return nil
+func (u *WecomLogic) SyncMsg(options wecomclient.SyncMsgOptions) (err error) {
+	wecomCursorLockKey := wecomclient.KeyWecomCursorLockPrefix + options.OpenKfID
+	if !global.RDS.SetNX(context.Background(), wecomCursorLockKey, "1", 30*time.Second).Val() {
+		return
+	}
+	defer global.RDS.Del(context.Background(), wecomCursorLockKey)
+	wecomCursorKey := wecomclient.KeyWecomCursorPrefix + options.OpenKfID
+	options.Cursor, _ = global.RDS.Get(context.Background(), wecomCursorKey).Result()
+	for {
+		resp, err := u.wecomkf.SyncMsgs(options)
+		if err != nil {
+			break
+		}
+		for _, msg := range resp.MsgList {
+			if err := u.processMessage(wecomclient.Message{
+				Message: msg,
+			}); err != nil {
+				return err
+			}
+		}
+		if err = global.RDS.Set(context.Background(), wecomCursorKey, resp.NextCursor, 0).Err(); err != nil {
+			break
+		}
+		if resp.HasMore == 0 {
+			break
+		}
+		options.Cursor = resp.NextCursor
+	}
+	return
 }
 
 func (u *WecomLogic) ReceptionistAdd(kfid string, req request.ReceptionistOptions) error {
@@ -241,18 +265,18 @@ func (u *WecomLogic) AddContactWay(kfid string) (string, error) {
 }
 
 // Helper
-func (u *WecomLogic) initializeWecomClient() error {
+func (u *WecomLogic) initializeWecomClient() (err error) {
 	if u.wecomkf != nil {
-		return nil
+		return
 	}
 	conf, err := wecomRepo.Get(wecomRepo.WithType("app"))
 	if err != nil {
 		global.ZAPLOG.Error("failed to get Wecom config", zap.Error(err))
-		return err
+		return
 	}
 	if conf.CorpID == "" || conf.AgentID == "" || conf.EncodingAESKey == "" || conf.Secret == "" || conf.Token == "" {
-		global.ZAPLOG.Error("wecom config is nil", zap.Error(err))
-		return fmt.Errorf("incomplete Wecom config")
+		global.ZAPLOG.Error("wecom config is nil")
+		return
 	}
 	u.wecomkf, err = wecom.NewWecomKFClient(wecomclient.WecomConfig{
 		CorpID:         conf.CorpID,
@@ -263,307 +287,128 @@ func (u *WecomLogic) initializeWecomClient() error {
 	})
 	if err != nil {
 		global.ZAPLOG.Error("failed to initialize WecomKFClient", zap.Error(err))
-		return err
+		return
 	}
-	return nil
+	return
 }
 
-func (u *WecomLogic) processMessage(msginfo wecomclient.MessageInfo) error {
-	kfinfo, err := kFRepo.Get(kFRepo.WithKFID(msginfo.KFID))
-	if err != nil {
-		return err
-	}
-	switch msginfo.MessageType {
-	case wecomclient.WecomEventTypeEnterSession:
-		if msginfo.Credential != "" {
-			return u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
-				Credential:     msginfo.Credential,
-				MenuMsgOptions: parseMenuText(kfinfo.BotWelcomeMsg),
-			})
-		}
-		if msginfo.ChatState == wecomclient.SessionStatusHandled {
-			return u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
-				KFID:           msginfo.KFID,
-				KHID:           msginfo.KHID,
-				MenuMsgOptions: parseMenuText(kfinfo.BotWelcomeMsg),
-			})
-		}
-	case wecomclient.WecomEventTypeSessionStatusChange:
-		switch msginfo.Message {
-		case wecomclient.WecomEventChangeTypeJoinSession:
-		case wecomclient.WecomEventChangeTypeTransferSession:
-			khinfo, err := kHRepo.Get(kHRepo.WithKHID(msginfo.KHID))
-			if err != nil {
-				global.ZAPLOG.Info("数据库没有找到该客户信息")
-				if err := kHRepo.Create(model.KH{KHID: msginfo.KHID}); err != nil {
-					return err
-				}
-				global.ZAPLOG.Info("录入客户信息:", zap.String("khid", msginfo.KHID))
-			}
-			chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + khinfo.StaffID
-			if err := global.RDS.Del(context.Background(), chatkey).Err(); err != nil {
-				global.ZAPLOG.Error("redis del error", zap.Error(err))
-				return err
-			}
-			isStaffWorkByStaffID(msginfo.StaffID)
-			return u.handleSuccessfulTransfer(msginfo, msginfo.StaffID, kfinfo)
-		case wecomclient.WecomEventChangeTypeEndSession:
-			if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
-				Credential:     msginfo.Credential,
-				MenuMsgOptions: parseMenuText(kfinfo.ChatendMsg),
-			}); err != nil {
-				global.ZAPLOG.Error("SendMenuMsgOnEvent", zap.Error(err))
-			}
-			chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + msginfo.StaffID
-			if err := global.RDS.Del(context.Background(), chatkey).Err(); err != nil {
-				global.ZAPLOG.Error("redis del error", zap.Error(err))
-				return err
-			}
-			global.ZAPLOG.Info("结束会话监控", zap.String("chatkey:", chatkey))
-		case wecomclient.WecomEventChangeTypeRejoinSession:
-			isStaffWorkByStaffID(msginfo.StaffID)
-			return u.handleSuccessfulTransfer(msginfo, msginfo.StaffID, kfinfo)
-		default:
-			global.ZAPLOG.Info("未实现的消息类型")
-		}
+func (u *WecomLogic) processMessage(msg wecomclient.Message) (err error) {
+	switch msg.MsgType {
 	case wecomclient.WecomMsgTypeText:
-		switch msginfo.ChatState {
-		case wecomclient.SessionStatusHandled:
-			return u.handleBotMessage(msginfo, kfinfo)
-		case wecomclient.SessionStatusWaiting:
-			global.ZAPLOG.Info("未实现的聊天状态处理")
-		case wecomclient.SessionStatusInProgress:
-			chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + msginfo.StaffID
-			if err = global.RDS.Set(context.Background(), chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
-				global.ZAPLOG.Error("redis set error", zap.Error(err))
-				return err
-			}
-		case wecomclient.SessionStatusEndedOrNotStarted:
-			global.ZAPLOG.Info("未实现的聊天状态处理")
-		default:
-			global.ZAPLOG.Info("未实现的聊天状态处理")
-		}
-	default:
-		global.ZAPLOG.Info("未实现的消息类型")
-	}
-	return nil
-}
-
-func (u *WecomLogic) handleSuccessfulTransfer(msginfo wecomclient.MessageInfo, staffid string, kfinfo model.KF) error {
-	if msginfo.ChatState != wecomclient.SessionStatusInProgress {
-		global.ZAPLOG.Info("变更微信客服会话状态由选出的接待人员接待")
-		staffcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
-			OpenKFID:       msginfo.KFID,
-			ExternalUserID: msginfo.KHID,
-			ServicerUserID: staffid,
-		}, wecomclient.SessionStatusInProgress)
+		textMessage, err := msg.GetTextMessage()
 		if err != nil {
-			global.ZAPLOG.Error("变更微信客服会话状态失败", zap.Error(err))
-			currentTime := time.Now()
-			formattedTime := currentTime.Format("2006-01-02 15:04:05")
-			errormessage := "未知原因出现异常请联系工作人员或可尝试继续与 AI 对话，当前时间：" + formattedTime
-			return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-				KFID:    msginfo.KFID,
-				KHID:    msginfo.KHID,
-				Message: errormessage,
-			})
-		}
-		if err = u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
-			Message:    kfinfo.StaffWelcomeMsg,
-			Credential: staffcredential,
-		}); err != nil {
 			return err
 		}
-	}
-	global.ZAPLOG.Info("更新客户的上一次接待人员为选出的接待人员")
-	if err := kHRepo.UpdatebyKHID(model.KH{
-		KHID:    msginfo.KHID,
-		StaffID: staffid,
-	}); err != nil {
-		global.ZAPLOG.Error("更新客户的上一次接待人员失败", zap.Error(err))
-	}
-	global.ZAPLOG.Info("降低该接待人员空闲权重")
-	ctx := context.Background()
-	staffweightkey := constant.KeyStaffWeightPrefix + staffid
-	if err := global.RDS.Decr(ctx, staffweightkey).Err(); err != nil {
-		return err
-	}
-	global.ZAPLOG.Info("缓存会话超时时间")
-	chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID + ":" + staffid
-	if err := global.RDS.Set(ctx, chatkey, 1, time.Duration(kfinfo.ChatTimeout)*time.Second).Err(); err != nil {
-		global.ZAPLOG.Error("redis set error", zap.Error(err))
-		return err
-	}
-	global.ZAPLOG.Info("开始监控会话任务")
-	go u.monitorChat(ctx, kfinfo, msginfo, staffweightkey, chatkey)
-	return nil
-}
-
-func (u *WecomLogic) monitorChat(ctx context.Context, kfinfo model.KF, msginfo wecomclient.MessageInfo, staffweightkey, chatkey string) {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			if !u.hasKHReplied(ctx, chatkey) {
-				u.handleChatTimeout(ctx, kfinfo, msginfo)
-				if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
-					global.ZAPLOG.Error("Incr", zap.Error(err))
-				} else {
-					global.ZAPLOG.Info("结束会话变更权重", zap.String("staffweightkey:", staffweightkey))
-				}
-				return
-			}
-		case <-ctx.Done():
-			global.ZAPLOG.Info("监控已停止")
-			return
-		}
-	}
-}
-
-func (u *WecomLogic) handleChatTimeout(ctx context.Context, kfinfo model.KF, msginfo wecomclient.MessageInfo) {
-	statusinfo, err := u.wecomkf.ServiceStateGet(wecomclient.ServiceStateGetOptions{
-		OpenKFID:       kfinfo.KFID,
-		ExternalUserID: msginfo.KHID,
-	})
-	if err != nil {
-		global.ZAPLOG.Error("获取会话失败", zap.Error(err))
-		return
-	}
-	if statusinfo == wecomclient.SessionStatusEndedOrNotStarted {
-		return
-	}
-	var cursor uint64
-	chatkey := constant.KeyWecomKHStaffPrefix + msginfo.KHID
-	result, _, err := global.RDS.Scan(ctx, cursor, chatkey+"*", 10).Result()
-	if err != nil {
-		return
-	}
-	if len(result) > 0 {
-		return
-	}
-	endcredential, err := u.wecomkf.ServiceStateTrans(wecomclient.ServiceStateTransOptions{
-		OpenKFID:       kfinfo.KFID,
-		ExternalUserID: msginfo.KHID,
-	}, wecomclient.SessionStatusEndedOrNotStarted)
-	if err != nil {
-		global.ZAPLOG.Error("结束会话失败", zap.Error(err))
-		return
-	}
-	global.ZAPLOG.Info("会话超时，已变更状态")
-	if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
-		Credential:     endcredential,
-		MenuMsgOptions: parseMenuText(kfinfo.ChatendMsg),
-	}); err != nil {
-		global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
-	}
-}
-
-func (u *WecomLogic) hasKHReplied(ctx context.Context, chatkey string) bool {
-	exists, err := global.RDS.Exists(ctx, chatkey).Result()
-	if err != nil {
-		global.ZAPLOG.Error("检查客户回复缓存失败", zap.Error(err))
-		return false
-	}
-	if exists > 0 {
-		return true
-	}
-	return false
-}
-
-func (u *WecomLogic) handleTransferToStaff(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
-	if kfinfo.ReceivePriority == 1 {
-		khinfo, err := kHRepo.Get(kHRepo.WithKHID(msginfo.KHID))
-		if err != nil {
-			global.ZAPLOG.Info("数据库没有找到该客户信息")
-			if err := kHRepo.Create(model.KH{KHID: msginfo.KHID}); err != nil {
-				return err
-			}
-			global.ZAPLOG.Info("录入客户信息:", zap.String("khid", msginfo.KHID))
-		}
-		if khinfo.StaffID != "" {
-			for _, staffinfo := range kfinfo.Staffs {
-				if staffinfo.StaffID == khinfo.StaffID {
-					isStaffWork, err := isStaffWorkByStaffID(khinfo.StaffID)
-					if err != nil {
-						return err
-					}
-					if isStaffWork {
-						global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", khinfo.StaffID))
-						return u.handleSuccessfulTransfer(msginfo, khinfo.StaffID, kfinfo)
-					}
-				}
-			}
-			global.ZAPLOG.Info("该接待人员不在客服应用中", zap.String("KFName", kfinfo.KFName))
-		}
-		global.ZAPLOG.Info("该客户无法应用上一次接待人员", zap.String("KHID", msginfo.KHID))
-	}
-	switch kfinfo.ReceiveRule {
-	case constant.KFReceiveRuleRoundRobin:
-		global.ZAPLOG.Info("轮流接待模式", zap.String("KFName", kfinfo.KFName))
-		global.ZAPLOG.Info("未实现功能")
-	case constant.KFReceiveRuleIdle:
-		global.ZAPLOG.Info("空闲接待模式", zap.String("KFName", kfinfo.KFName))
-		var staffIDs []string
-		for _, staffinfo := range kfinfo.Staffs {
-			isStaffWork, err := isStaffWorkByStaffID(staffinfo.StaffID)
+		global.ZAPLOG.Debug("", zap.Any("", textMessage))
+		return u.handleTextMessage(wecomclient.Text{Text: textMessage})
+	case wecomclient.WecomMsgTypeEvent:
+		switch msg.EventType {
+		case wecomclient.WecomMsgTypeEnterSessionEvent:
+			enterSessionEvent, err := msg.GetEnterSessionEvent()
 			if err != nil {
 				return err
 			}
-			if isStaffWork {
-				staffIDs = append(staffIDs, staffinfo.StaffID)
+			global.ZAPLOG.Debug("", zap.Any("", enterSessionEvent))
+			return u.handleEnterSessionEvent(wecomclient.EnterSessionEvent{EnterSessionEvent: enterSessionEvent})
+		case wecomclient.WecomMsgTypeMsgSendFailEvent:
+			msgSendFailEvent, err := msg.GetMsgSendFailEvent()
+			if err != nil {
+				return err
 			}
+			global.ZAPLOG.Debug("", zap.Any("", msgSendFailEvent))
+			return err
+		case wecomclient.WecomMsgTypeSessionStatusChangeEvent:
+			sessionStatusChangeEvent, err := msg.GetSessionStatusChangeEvent()
+			if err != nil {
+				return err
+			}
+			global.ZAPLOG.Debug("", zap.Any("", sessionStatusChangeEvent))
+			return u.handleSessionStatusChangeEvent(wecomclient.SessionStatusChangeEvent{SessionStatusChangeEvent: sessionStatusChangeEvent})
 		}
-		selectedstaff, staffweightvalue := getHighestWeightStaff(staffIDs)
-		if selectedstaff != "" {
-			global.ZAPLOG.Info("选出的接待人员", zap.String("StaffID", selectedstaff), zap.Int("当前权重", staffweightvalue))
-			return u.handleSuccessfulTransfer(msginfo, selectedstaff, kfinfo)
-		}
-		global.ZAPLOG.Info("没有找到空闲的接待人员")
-		return u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-			KFID:    msginfo.KFID,
-			KHID:    msginfo.KHID,
-			Message: kfinfo.UnmannedMsg,
-		})
 	default:
-		global.ZAPLOG.Info("默认接待模式未配置", zap.String("KFName", kfinfo.KFName))
-		return nil
+
 	}
-	return nil
+	return
 }
 
-func (u *WecomLogic) handleBotMessage(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
-	switch kfinfo.Status {
+func (u *WecomLogic) handleTextMessage(textMessage wecomclient.Text) (err error) {
+	var options wecomclient.ServiceStateGetOptions
+	options.OpenKFID = textMessage.OpenKFID
+	options.ExternalUserID = textMessage.ExternalUserID
+	serviceStateInfo, err := u.wecomkf.ServiceStateGet(options)
+	if err != nil {
+		global.ZAPLOG.Error(serviceStateInfo.Error(), zap.Error(err))
+		return
+	}
+	switch serviceStateInfo.ServiceState {
+	case wecomclient.SessionStatusNew:
+		return u.handleNewSession(textMessage)
+	case wecomclient.SessionStatusHandled:
+		return u.handleBotSession(textMessage)
+	case wecomclient.SessionStatusWaiting:
+
+	case wecomclient.SessionStatusInProgress:
+		return u.handleInProgress(textMessage)
+	case wecomclient.SessionStatusEndedOrNotStarted:
+
+	default:
+
+	}
+	return
+}
+
+func (u *WecomLogic) handleNewSession(textMessage wecomclient.Text) (err error) {
+	var options wecomclient.ServiceStateTransOptions
+	options.OpenKFID = textMessage.OpenKFID
+	options.ExternalUserID = textMessage.ExternalUserID
+	options.ServiceState = wecomclient.SessionStatusHandled
+	serviceStateRespInfo, err := u.wecomkf.ServiceStateTrans(options)
+	if err != nil {
+		global.ZAPLOG.Error(serviceStateRespInfo.Error(), zap.Error(err))
+		return
+	}
+	return u.handleBotSession(textMessage)
+}
+
+func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) {
+	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(textMessage.OpenKFID))
+	if err != nil {
+		return
+	}
+	switch kFInfo.Status {
 	case constant.KFStatusRobotToHuman:
-		keywords := strings.Split(kfinfo.TransferKeywords, ";")
-		for _, keyword := range keywords {
-			if msginfo.Message == keyword {
-				global.ZAPLOG.Info("客户触发客服转人工关键字", zap.String("keyword", keyword))
-				return u.handleTransferToStaff(msginfo, kfinfo)
+		for _, keyword := range strings.Split(kFInfo.TransferKeywords, ";") {
+			if textMessage.Text.Text.Content == keyword {
+				return u.handleTransferToStaff(textMessage, kFInfo)
 			}
 		}
-		return u.handleBotReply(msginfo, kfinfo)
+		return u.handleBotReply(textMessage)
 	case constant.KFStatusOnlyRobot:
-		global.ZAPLOG.Info("客服为仅机器人模式，无法转接人工", zap.String("KFName", kfinfo.KFName))
-		return u.handleBotReply(msginfo, kfinfo)
+		return u.handleBotReply(textMessage)
 	case constant.KFStatusOnlyHuman:
-		global.ZAPLOG.Info("客服为仅人工模式，机器人无法回复消息", zap.String("KFName", kfinfo.KFName))
-		return nil
+
 	default:
-		global.ZAPLOG.Error("该客服模式不存在")
-		return nil
+
 	}
+	return
 }
 
-func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo model.KF) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(kfinfo.BotTimeout)*time.Second)
+func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
+	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(textMessage.OpenKFID))
+	if err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(kFInfo.BotTimeout)*time.Second)
 	defer cancel()
 	resultChan := make(chan string)
 	errorChan := make(chan error)
+	var sendTextMsgOptions wecomclient.SendTextMsgOptions
+	sendTextMsgOptions.Touser = textMessage.ExternalUserID
+	sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
 	go func() {
-		message := msginfo.Message + kfinfo.BotPrompt
+		message := textMessage.Text.Text.Content + kFInfo.BotPrompt
 		llmappLogic := NewILLMAppLogic()
-		fullContent, err := llmappLogic.ChatMessage(msginfo.KHID, kfinfo.BotID, message)
+		fullContent, err := llmappLogic.ChatMessage(textMessage.ExternalUserID, kFInfo.BotID, message)
 		if err != nil {
 			errorChan <- err
 		} else {
@@ -572,46 +417,289 @@ func (u *WecomLogic) handleBotReply(msginfo wecomclient.MessageInfo, kfinfo mode
 	}()
 	select {
 	case <-ctx.Done():
-		err := u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-			KFID:    msginfo.KFID,
-			KHID:    msginfo.KHID,
-			Message: kfinfo.BotTimeoutMsg,
-		})
+		sendTextMsgOptions.Text.Content = kFInfo.BotTimeoutMsg
+		err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
 		if err != nil {
-			global.ZAPLOG.Error("failed to send wait message", zap.Error(err))
+			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 		}
-		global.ZAPLOG.Info("bot超时消息:", zap.String("content", kfinfo.BotTimeoutMsg))
 		select {
 		case fullContent := <-resultChan:
-			err = u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-				KFID:    msginfo.KFID,
-				KHID:    msginfo.KHID,
-				Message: MarkdownToText(fullContent),
-			})
+			sendTextMsgOptions.Text.Content = fullContent
+			if err = u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+				return
+			}
+			return
+		case err = <-errorChan:
+			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ChatMessage"), zap.Error(err))
+			return
+		}
+	case fullContent := <-resultChan:
+		sendTextMsgOptions.Text.Content = fullContent
+		if err = u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+			return
+		}
+		return
+	case err = <-errorChan:
+		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ChatMessage"), zap.Error(err))
+		return
+	}
+}
+
+func (u *WecomLogic) handleInProgress(textMessage wecomclient.Text) (err error) {
+	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(textMessage.OpenKFID))
+	if err != nil {
+		return
+	}
+	chatkey := constant.KeyWecomKHStaffPrefix + textMessage.ExternalUserID + ":" + textMessage.ReceptionistUserID
+	if err = global.RDS.Set(context.Background(), chatkey, 1, time.Duration(kFInfo.ChatTimeout)*time.Second).Err(); err != nil {
+		global.ZAPLOG.Error("redis set error", zap.Error(err))
+		return
+	}
+	return
+}
+
+func (u *WecomLogic) handleEnterSessionEvent(enterSessionEvent wecomclient.EnterSessionEvent) (err error) {
+	var options wecomclient.ServiceStateGetOptions
+	options.OpenKFID = enterSessionEvent.OpenKFID
+	options.ExternalUserID = enterSessionEvent.ExternalUserID
+	serviceStateInfo, err := u.wecomkf.ServiceStateGet(options)
+	if err != nil {
+		global.ZAPLOG.Error(serviceStateInfo.Error(), zap.Error(err))
+		return
+	}
+	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(enterSessionEvent.OpenKFID))
+	if err != nil {
+		return err
+	}
+	if serviceStateInfo.ServiceState == wecomclient.SessionStatusHandled {
+		return u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+			KFID:           enterSessionEvent.OpenKFID,
+			KHID:           enterSessionEvent.ExternalUserID,
+			MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+		})
+	}
+	return u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
+		Credential:     enterSessionEvent.Event.WelcomeCode,
+		MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+	})
+}
+
+func (u *WecomLogic) handleSessionStatusChangeEvent(sessionStatusChangeEvent wecomclient.SessionStatusChangeEvent) (err error) {
+	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(sessionStatusChangeEvent.OpenKFID))
+	if err != nil {
+		return err
+	}
+	switch sessionStatusChangeEvent.Event.ChangeType {
+	case wecomclient.WecomEventChangeTypeJoinSession:
+	case wecomclient.WecomEventChangeTypeTransferSession:
+		chatkey := constant.KeyWecomKHStaffPrefix + sessionStatusChangeEvent.ExternalUserID + ":" + sessionStatusChangeEvent.Event.OldReceptionistUserID
+		if err := global.RDS.Del(context.Background(), chatkey).Err(); err != nil {
+			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "RDS.Del chatkey"), zap.Error(err))
+			return err
+		}
+		isStaffWorkByStaffID(sessionStatusChangeEvent.ReceptionistUserID)
+		var serviceStateTransOptions wecomclient.ServiceStateTransOptions
+		serviceStateTransOptions.OpenKFID = sessionStatusChangeEvent.OpenKFID
+		serviceStateTransOptions.ExternalUserID = sessionStatusChangeEvent.ExternalUserID
+		serviceStateTransOptions.ServicerUserID = sessionStatusChangeEvent.ReceptionistUserID
+		return u.handleServiceStateTransInProgress(serviceStateTransOptions)
+	case wecomclient.WecomEventChangeTypeEndSession:
+		if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
+			Credential:     sessionStatusChangeEvent.Event.MsgCode,
+			MenuMsgOptions: parseMenuText(kFInfo.ChatendMsg),
+		}); err != nil {
+			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendMenuMsgOnEvent"), zap.Error(err))
+		}
+		chatkey := constant.KeyWecomKHStaffPrefix + sessionStatusChangeEvent.ExternalUserID + ":" + sessionStatusChangeEvent.Event.OldReceptionistUserID
+		if err = global.RDS.Del(context.Background(), chatkey).Err(); err != nil {
+			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "RDS.Del chatkey"), zap.Error(err))
+			return
+		}
+		return
+	case wecomclient.WecomEventChangeTypeRejoinSession:
+		global.ZAPLOG.Debug("WecomEventChangeTypeRejoinSession")
+		isStaffWorkByStaffID(sessionStatusChangeEvent.Event.NewReceptionistUserID)
+		var serviceStateTransOptions wecomclient.ServiceStateTransOptions
+		serviceStateTransOptions.OpenKFID = sessionStatusChangeEvent.OpenKFID
+		serviceStateTransOptions.ExternalUserID = sessionStatusChangeEvent.ExternalUserID
+		serviceStateTransOptions.ServicerUserID = sessionStatusChangeEvent.Event.NewReceptionistUserID
+		return u.handleServiceStateTransInProgress(serviceStateTransOptions)
+	default:
+		global.ZAPLOG.Debug(i18n.T("wecom.unknow_msgtype"))
+	}
+	return
+}
+
+func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions wecomclient.ServiceStateTransOptions) (err error) {
+	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(serviceStateTransOptions.OpenKFID))
+	if err != nil {
+		return
+	}
+	serviceStateTransOptions.ServiceState = wecomclient.SessionStatusInProgress
+	serviceStateRespInfo, err := u.wecomkf.ServiceStateTrans(serviceStateTransOptions)
+	if err != nil {
+		global.ZAPLOG.Error(serviceStateRespInfo.Error(), zap.Error(err))
+		return
+	}
+	if serviceStateRespInfo.MsgCode != "" {
+		if err = u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
+			Message:    kFInfo.StaffWelcomeMsg,
+			Credential: serviceStateRespInfo.MsgCode,
+		}); err != nil {
+			return
+		}
+	}
+	global.ZAPLOG.Info("更新客户的上一次接待人员为选出的接待人员")
+	if err := kHRepo.UpdatebyKHID(model.KH{
+		KHID:    serviceStateTransOptions.ExternalUserID,
+		StaffID: serviceStateTransOptions.ServicerUserID,
+	}); err != nil {
+		global.ZAPLOG.Error("更新客户的上一次接待人员失败", zap.Error(err))
+	}
+	global.ZAPLOG.Debug("降低该接待人员空闲权重")
+	ctx := context.Background()
+	staffweightkey := constant.KeyStaffWeightPrefix + serviceStateTransOptions.ServicerUserID
+	if err = global.RDS.Decr(ctx, staffweightkey).Err(); err != nil {
+		return
+	}
+	global.ZAPLOG.Debug("缓存会话超时时间")
+	chatkey := constant.KeyWecomKHStaffPrefix + serviceStateTransOptions.ExternalUserID + ":" + serviceStateTransOptions.ServicerUserID
+	if err = global.RDS.Set(ctx, chatkey, 1, time.Duration(kFInfo.ChatTimeout)*time.Second).Err(); err != nil {
+		global.ZAPLOG.Error("redis set error", zap.Error(err))
+		return
+	}
+	global.ZAPLOG.Debug("handleChatTimeoutTask")
+	monitorCtx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
+	go func(ctx context.Context) {
+		defer func() {
+			cancel()
+			global.ZAPLOG.Debug("cancel()")
+		}()
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if exists, err := global.RDS.Exists(ctx, chatkey).Result(); err == nil && exists > 0 {
+					continue
+				}
+				u.handleChatTimeout(serviceStateTransOptions)
+				if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
+					global.ZAPLOG.Error("Incr", zap.Error(err))
+					return
+				}
+				global.ZAPLOG.Debug("handleChatTimeout", zap.String("staffweightkey:", staffweightkey))
+				return
+			case <-ctx.Done():
+				global.ZAPLOG.Debug("ctx.Done()")
+				return
+			}
+		}
+	}(monitorCtx)
+	return
+}
+
+func (u *WecomLogic) handleChatTimeout(serviceStateTransOptions wecomclient.ServiceStateTransOptions) {
+	var getOptions wecomclient.ServiceStateGetOptions
+	getOptions.OpenKFID = serviceStateTransOptions.OpenKFID
+	getOptions.ExternalUserID = serviceStateTransOptions.ExternalUserID
+	serviceStateInfo, err := u.wecomkf.ServiceStateGet(getOptions)
+	if err != nil {
+		global.ZAPLOG.Error(serviceStateInfo.Error(), zap.Error(err))
+		return
+	}
+	if serviceStateInfo.ServiceState == wecomclient.SessionStatusEndedOrNotStarted {
+		return
+	}
+	var cursor uint64
+	chatkey := constant.KeyWecomKHStaffPrefix + serviceStateTransOptions.ExternalUserID
+	result, _, err := global.RDS.Scan(context.Background(), cursor, chatkey+"*", 10).Result()
+	if err != nil {
+		return
+	}
+	if len(result) > 0 {
+		return
+	}
+	serviceStateTransOptions.ServiceState = wecomclient.SessionStatusEndedOrNotStarted
+	serviceStateRespInfo, err := u.wecomkf.ServiceStateTrans(serviceStateTransOptions)
+	if err != nil {
+		global.ZAPLOG.Error(serviceStateRespInfo.Error(), zap.Error(err))
+		return
+	}
+	global.ZAPLOG.Debug("会话超时，已变更状态")
+	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(serviceStateTransOptions.OpenKFID))
+	if err != nil {
+		return
+	}
+	if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
+		Credential:     serviceStateRespInfo.MsgCode,
+		MenuMsgOptions: parseMenuText(kFInfo.ChatendMsg),
+	}); err != nil {
+		global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
+	}
+}
+
+func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo model.KF) (err error) {
+	if kFInfo.ReceivePriority == 1 {
+		kHInfo, err := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
+		if err != nil {
+			if err := kHRepo.Create(model.KH{KHID: textMessage.ExternalUserID}); err != nil {
+				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "Create"), zap.Error(err))
+				return err
+			}
+		}
+		if kHInfo.StaffID != "" {
+			for _, staffInfo := range kFInfo.Staffs {
+				if staffInfo.StaffID == kHInfo.StaffID {
+					isStaffWork, err := isStaffWorkByStaffID(kHInfo.StaffID)
+					if err != nil {
+						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "isStaffWorkByStaffID"), zap.Error(err))
+						return err
+					}
+					if isStaffWork {
+						var serviceStateTransOptions wecomclient.ServiceStateTransOptions
+						serviceStateTransOptions.OpenKFID = textMessage.OpenKFID
+						serviceStateTransOptions.ExternalUserID = textMessage.ExternalUserID
+						serviceStateTransOptions.ServicerUserID = kHInfo.StaffID
+						return u.handleServiceStateTransInProgress(serviceStateTransOptions)
+					}
+				}
+			}
+		}
+	}
+	switch kFInfo.ReceiveRule {
+	case constant.KFReceiveRuleRoundRobin:
+		global.ZAPLOG.Debug("ToDo")
+	case constant.KFReceiveRuleIdle:
+		var staffIDs []string
+		for _, staffinfo := range kFInfo.Staffs {
+			isStaffWork, err := isStaffWorkByStaffID(staffinfo.StaffID)
 			if err != nil {
 				return err
 			}
-			global.ZAPLOG.Info("bot消息:", zap.String("fullContent", fullContent))
-			return nil
-		case err := <-errorChan:
-			global.ZAPLOG.Error("failed ChatMessage after timeout", zap.Error(err))
-			return err
+			if isStaffWork {
+				staffIDs = append(staffIDs, staffinfo.StaffID)
+			}
 		}
-	case fullContent := <-resultChan:
-		err := u.wecomkf.SendTextMsg(wecomclient.SendTextMsgOptions{
-			KFID:    msginfo.KFID,
-			KHID:    msginfo.KHID,
-			Message: MarkdownToText(fullContent),
-		})
-		if err != nil {
-			return err
+		selectedstaff, _ := getHighestWeightStaff(staffIDs)
+		if selectedstaff != "" {
+			var serviceStateTransOptions wecomclient.ServiceStateTransOptions
+			serviceStateTransOptions.OpenKFID = textMessage.OpenKFID
+			serviceStateTransOptions.ExternalUserID = textMessage.ExternalUserID
+			serviceStateTransOptions.ServicerUserID = selectedstaff
+			return u.handleServiceStateTransInProgress(serviceStateTransOptions)
 		}
-		global.ZAPLOG.Info("bot原消息:", zap.String("fullContent", fullContent))
-		return nil
-	case err := <-errorChan:
-		global.ZAPLOG.Error("failed ChatMessage", zap.Error(err))
-		return err
+		global.ZAPLOG.Debug("没有找到空闲的接待人员")
+		var sendTextMsgOptions wecomclient.SendTextMsgOptions
+		sendTextMsgOptions.Touser = textMessage.ExternalUserID
+		sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+		sendTextMsgOptions.Text.Content = kFInfo.UnmannedMsg
+		return u.wecomkf.SendTextMsg(sendTextMsgOptions)
+	default:
+
 	}
+	return
 }
 
 func parseMenuText(text string) wecomclient.MenuMsgOptions {

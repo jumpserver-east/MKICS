@@ -2,8 +2,6 @@ package client
 
 import (
 	"EvoBot/backend/global"
-	"context"
-	"strconv"
 	"sync"
 
 	"github.com/silenceper/wechat/v2/work/kf"
@@ -24,207 +22,40 @@ func NewWecomKF(kf WecomKF) *WecomKF {
 	return &kf
 }
 
-func (k *WecomKF) VerifyURL(options SignatureOptions) (string, error) {
-	echo, err := k.KFClient.VerifyURL(kf.SignatureOptions{
-		Signature: options.Signature,
-		TimeStamp: options.TimeStamp,
-		Nonce:     options.Nonce,
-		EchoStr:   options.EchoStr,
-	})
-	if err != nil {
-		return "", err
-	}
-	return echo, nil
+func (k *WecomKF) VerifyURL(options SignatureOptions) (echo string, err error) {
+	return k.KFClient.VerifyURL(options.SignatureOptions)
 }
 
-func (k *WecomKF) SyncMsg(body []byte, streamcallback func(*MessageInfo)) (MessageInfo, error) {
-	var messageInfo MessageInfo
-	callbackMessage, err := k.KFClient.GetCallbackMessage(body)
-	if callbackMessage.MsgType == "event" && callbackMessage.Event == "kf_msg_or_event" && err == nil {
-		var syncMsgOptions kf.SyncMsgOptions
-		syncMsgOptions.OpenKfID = callbackMessage.OpenKfID
-		syncMsgOptions.Token = callbackMessage.Token
-		syncMsgOptions.Limit = 1
-		wecomcursorkey := KeyWecomCursorPrefix + callbackMessage.OpenKfID
-		exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
-		if err != nil {
-			global.ZAPLOG.Error("failed to check key existence", zap.Error(err))
-		}
-		if exists > 0 {
-			wecomcursorvalue, err := global.RDS.Get(context.Background(), wecomcursorkey).Result()
-			if err != nil {
-				global.ZAPLOG.Error("failed to get wecomcursorkey", zap.Error(err))
-			}
-			if wecomcursorvalue == "" {
-				return messageInfo, nil
-			}
-			if err := global.RDS.Set(context.Background(), wecomcursorkey, "", 0).Err(); err != nil {
-				global.ZAPLOG.Error("failed to set empty wecomcursorkey", zap.Error(err))
-			}
-			syncMsgOptions.Cursor = wecomcursorvalue
-		}
-		message, err := k.KFClient.SyncMsg(syncMsgOptions)
-		if err != nil {
-			if err = global.RDS.Set(context.Background(), wecomcursorkey, syncMsgOptions.Cursor, 0).Err(); err != nil {
-				global.ZAPLOG.Error("recovery wecomcursorvalue failed", zap.Error(err))
-				global.ZAPLOG.Info("please recovery wecomcursorvalue",
-					zap.String("wecomcursorkey", wecomcursorkey),
-					zap.String("wecomcursorvalue", syncMsgOptions.Cursor))
-				return messageInfo, err
-			}
-			global.ZAPLOG.Info("recovery wecomcursorvalue success")
-			return messageInfo, err
-		}
-		if err = global.RDS.Set(context.Background(), wecomcursorkey, message.NextCursor, 0).Err(); err != nil {
-			return messageInfo, err
-		}
-		messageInfo, err = k.HandleMsg(message)
-		streamcallback(&messageInfo)
-		for message.HasMore == 1 {
-			global.ZAPLOG.Debug("HasMore")
-			exists, err := global.RDS.Exists(context.Background(), wecomcursorkey).Result()
-			if err != nil {
-				global.ZAPLOG.Error("failed to check key existence", zap.Error(err))
-			}
-			if exists > 0 {
-				wecomcursorvalue, err := global.RDS.Get(context.Background(), wecomcursorkey).Result()
-				if err != nil {
-					global.ZAPLOG.Error("failed to get wecomcursorkey", zap.Error(err))
-				}
-				if wecomcursorvalue == "" {
-					return messageInfo, nil
-				}
-				if err := global.RDS.Set(context.Background(), wecomcursorkey, "", 0).Err(); err != nil {
-					global.ZAPLOG.Error("failed to set empty wecomcursorkey", zap.Error(err))
-				}
-				syncMsgOptions.Cursor = wecomcursorvalue
-			}
-			messageMore, err := k.KFClient.SyncMsg(syncMsgOptions)
-			if err != nil {
-				return messageInfo, err
-			}
-			if err = global.RDS.Set(context.Background(), wecomcursorkey, messageMore.NextCursor, 0).Err(); err != nil {
-				return messageInfo, err
-			}
-			message.MsgList = append(message.MsgList, messageMore.MsgList...)
-			message.HasMore = messageMore.HasMore
-			messageInfo, _ = k.HandleMsg(messageMore)
-			streamcallback(&messageInfo)
-		}
-		return messageInfo, err
-	}
-	return messageInfo, err
+func (k *WecomKF) SyncMsgs(options SyncMsgOptions) (info SyncMsgSchema, err error) {
+	info.SyncMsgSchema, err = k.KFClient.SyncMsg(options.SyncMsgOptions)
+	return
 }
 
-func (k *WecomKF) HandleMsg(message kf.SyncMsgSchema) (MessageInfo, error) {
-	var messageInfo MessageInfo
-	if len(message.MsgList) > 0 {
-		msg := message.MsgList[0]
-		messageInfo.MessageID = msg.MsgID
-		messageInfo.Origin = msg.Origin
-		messageInfo.SendTime = msg.SendTime
-		switch msg.MsgType {
-		case WecomMsgTypeText:
-			messageInfo.KFID = msg.OpenKFID
-			messageInfo.KHID = msg.ExternalUserID
-			textmsg, _ := msg.GetTextMessage()
-			if msg.Origin == MessageTypeReceptionistMessage {
-				messageInfo.StaffID = textmsg.ReceptionistUserID
-			}
-			messageInfo.MessageType = textmsg.MsgType
-			messageInfo.Message = textmsg.Text.Content
-		case WecomMsgTypeEvent:
-			switch msg.EventType {
-			case WecomEventTypeEnterSession:
-				entersessioninfo, _ := msg.GetEnterSessionEvent()
-				messageInfo.KFID = entersessioninfo.Event.OpenKFID
-				messageInfo.KHID = entersessioninfo.Event.ExternalUserID
-				messageInfo.MessageType = entersessioninfo.Event.EventType
-				messageInfo.Credential = entersessioninfo.Event.WelcomeCode
-			case WecomEventTypeSessionStatusChange:
-				sessionstatuschangeinfo, _ := msg.GetSessionStatusChangeEvent()
-				messageInfo.KFID = sessionstatuschangeinfo.OpenKFID
-				messageInfo.KHID = sessionstatuschangeinfo.ExternalUserID
-				messageInfo.Message = strconv.FormatUint(uint64(sessionstatuschangeinfo.Event.ChangeType), 10)
-				messageInfo.MessageType = sessionstatuschangeinfo.Event.EventType
-				if sessionstatuschangeinfo.Event.OldReceptionistUserID != "" {
-					messageInfo.StaffID = sessionstatuschangeinfo.Event.OldReceptionistUserID
-				}
-				if sessionstatuschangeinfo.Event.NewReceptionistUserID != "" {
-					messageInfo.StaffID = sessionstatuschangeinfo.Event.NewReceptionistUserID
-				}
-				messageInfo.Credential = sessionstatuschangeinfo.Event.MsgCode
-			case WecomEventTypeMsgSendFail:
-				msgsendfailinfo, _ := msg.GetMsgSendFailEvent()
-				messageInfo.KFID = msgsendfailinfo.Event.OpenKFID
-				messageInfo.KHID = msgsendfailinfo.Event.ExternalUserID
-				messageInfo.MessageType = msgsendfailinfo.Event.EventType
-				messageInfo.Message = strconv.FormatUint(uint64(msgsendfailinfo.Event.FailType), 10)
-			default:
-				global.ZAPLOG.Info("此事件类型服务暂不处理", zap.String("EventType", msg.EventType))
-				return messageInfo, nil
-			}
-		default:
-			global.ZAPLOG.Info("此消息类型服务暂不处理", zap.String("MsgType", msg.MsgType))
-			return messageInfo, nil
-		}
-		statusinfo, _ := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
-			OpenKFID:       messageInfo.KFID,
-			ExternalUserID: messageInfo.KHID,
-		})
-		if statusinfo.ServiceState == SessionStatusNew {
-			_, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
-				OpenKFID:       msg.OpenKFID,
-				ExternalUserID: msg.ExternalUserID,
-				ServiceState:   SessionStatusHandled,
-			})
-			if err != nil {
-				return messageInfo, err
-			}
-			statusinfo.ServiceState = SessionStatusHandled
-		}
-		messageInfo.ChatState = statusinfo.ServiceState
-		return messageInfo, nil
-	}
-	return messageInfo, nil
-}
-
-func (k *WecomKF) SendTextMsg(info SendTextMsgOptions) error {
+func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
 	k.Mu.Lock()
 	if k.UserQueues == nil {
 		k.UserQueues = make(map[string]*UserMsgQueue)
 	}
-	userQueue, exists := k.UserQueues[info.KHID]
+	userQueue, exists := k.UserQueues[options.Touser]
 	if !exists {
 		userQueue = &UserMsgQueue{}
-		k.UserQueues[info.KHID] = userQueue
+		k.UserQueues[options.Touser] = userQueue
 	}
 	k.Mu.Unlock()
 
 	userQueue.mu.Lock()
 	defer userQueue.mu.Unlock()
 
-	sendmsgs := splitContent(info.Message)
-	for _, content := range sendmsgs {
-		sendmsg := struct {
-			Touser   string `json:"touser"`
-			OpenKfid string `json:"open_kfid"`
-			MsgID    string `json:"msgid,omitempty"`
-			MsgType  string `json:"msgtype"`
-			Text     struct {
-				Content string `json:"content"`
-			} `json:"text"`
-		}{
-			Touser:   info.KHID,
-			OpenKfid: info.KFID,
-			MsgType:  WecomMsgTypeText,
-		}
-		sendmsg.Text.Content = content
-		if _, err := k.KFClient.SendMsg(sendmsg); err != nil {
+	options.MsgType = "text"
+	for _, content := range splitContent(options.Text.Content) {
+		options.Text.Content = content
+		info, err := k.KFClient.SendMsg(options)
+		if err != nil {
+			global.ZAPLOG.Error(info.Error(), zap.Error(err))
 			return err
 		}
 	}
-	return nil
+	return
 }
 
 func (k *WecomKF) SendMenuMsg(info SendMenuMsgOptions) error {
@@ -294,28 +125,14 @@ func (k *WecomKF) SendMenuMsgOnEvent(info SendMenuMsgOnEventOptions) error {
 	return nil
 }
 
-func (k *WecomKF) ServiceStateGet(options ServiceStateGetOptions) (int, error) {
-	res, err := k.KFClient.ServiceStateGet(kf.ServiceStateGetOptions{
-		OpenKFID:       options.OpenKFID,
-		ExternalUserID: options.ExternalUserID,
-	})
-	if err != nil {
-		return -1, err
-	}
-	return res.ServiceState, nil
+func (k *WecomKF) ServiceStateGet(options ServiceStateGetOptions) (info ServiceStateGetSchema, err error) {
+	info.ServiceStateGetSchema, err = k.KFClient.ServiceStateGet(options.ServiceStateGetOptions)
+	return
 }
 
-func (k *WecomKF) ServiceStateTrans(options ServiceStateTransOptions, servicestate int) (string, error) {
-	res, err := k.KFClient.ServiceStateTrans(kf.ServiceStateTransOptions{
-		OpenKFID:       options.OpenKFID,
-		ExternalUserID: options.ExternalUserID,
-		ServiceState:   servicestate,
-		ServicerUserID: options.ServicerUserID,
-	})
-	if err != nil {
-		return "", err
-	}
-	return res.MsgCode, nil
+func (k *WecomKF) ServiceStateTrans(options ServiceStateTransOptions) (info ServiceStateTransSchema, err error) {
+	info.ServiceStateTransSchema, err = k.KFClient.ServiceStateTrans(options.ServiceStateTransOptions)
+	return
 }
 
 func (k *WecomKF) ReceptionistList(kfid string) ([]ReceptionistList, error) {

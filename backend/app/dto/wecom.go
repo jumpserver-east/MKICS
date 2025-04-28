@@ -1,10 +1,9 @@
 package dto
 
+import wecomclient "EvoBot/backend/utils/wecom/client"
+
 type SignatureOptions struct {
-	Signature string `form:"msg_signature"`
-	TimeStamp string `form:"timestamp"`
-	Nonce     string `form:"nonce"`
-	EchoStr   string `form:"echostr"`
+	wecomclient.SignatureOptions
 }
 
 type WecomConfig struct {

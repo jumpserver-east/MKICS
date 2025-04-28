@@ -1,22 +1,27 @@
 package client
 
 const (
-	KeyWecomCursorPrefix = "wecom:cursor:"
+	KeyWecomCursorPrefix     = "wecom:cursor:"
+	KeyWecomCursorLockPrefix = "wecom:cursor_lock:"
+
+	WecomCallbackMsgTypeEvent      = "event"
+	WecomCallbackEventKFMsgOrEvent = "kf_msg_or_event"
 
 	WecomMsgTypeText = "text"
 
-	WecomMsgTypeEvent                  = "event"
-	WecomEventTypeEnterSession         = "enter_session"
-	WecomEventTypeMsgSendFail          = "msg_send_fail"
-	WecomEventTypeServicerStatusChange = "servicer_status_change"
-	WecomEventTypeSessionStatusChange  = "session_status_change"
-	WecomEventTypeUserRecallMsg        = "user_recall_msg"
-	WecomEventTypeServicerRecallMsg    = "servicer_recall_msg"
-
-	WecomEventChangeTypeJoinSession     = "1" // 从接待池接入会话
-	WecomEventChangeTypeTransferSession = "2" // 转接会话
-	WecomEventChangeTypeEndSession      = "3" // 结束会话
-	WecomEventChangeTypeRejoinSession   = "4" // 重新接入已结束/已转接会话
+	WecomMsgTypeEvent                     = "event"
+	WecomMsgTypeEnterSessionEvent         = "enter_session"          // 用户进入会话事件
+	WecomMsgTypeMsgSendFailEvent          = "msg_send_fail"          // 消息发送失败事件
+	WecomMsgTypeServicerStatusChangeEvent = "servicer_status_change" // 接待人员接待状态变更事件
+	WecomMsgTypeSessionStatusChangeEvent  = "session_status_change"  // 会话状态变更事件
+	WecomMsgTypeUserRecallMsgEvent        = "user_recall_msg"        // 用户撤回消息事件
+	WecomMsgTypeServicerRecallMsgEvent    = "servicer_recall_msg"    // 接待人员撤回消息事件
+)
+const (
+	WecomEventChangeTypeJoinSession     uint32 = iota + 1 // 从接待池接入会话
+	WecomEventChangeTypeTransferSession                   // 转接会话
+	WecomEventChangeTypeEndSession                        // 结束会话
+	WecomEventChangeTypeRejoinSession                     // 重新接入已结束/已转接会话
 )
 
 const (

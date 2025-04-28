@@ -15,8 +15,8 @@ func (s *WecomRouter) InitRouter(Router *gin.RouterGroup) {
 	wecomAuthRouter := Router.Group("wecom").Use(middleware.AuthRequired())
 	baseApi := v1.ApiGroupApp.BaseApi
 	{
-		wecomRouter.GET("/callback", baseApi.WecomVerifyURL)
 		wecomRouter.POST("/callback", baseApi.WecomHandle)
+		wecomRouter.GET("/callback", baseApi.WecomHandle)
 
 		wecomAuthRouter.GET("/config", baseApi.WecomConfigList)
 		wecomAuthRouter.GET("/config/:uuid", baseApi.WecomConfigGet)

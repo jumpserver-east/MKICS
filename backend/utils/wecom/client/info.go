@@ -1,5 +1,10 @@
 package client
 
+import (
+	"github.com/silenceper/wechat/v2/work/kf"
+	"github.com/silenceper/wechat/v2/work/kf/syncmsg"
+)
+
 type DeptUser struct {
 	UserID     string `json:"userid"`
 	Department int    `json:"department"`
@@ -15,10 +20,19 @@ type WecomConfig struct {
 }
 
 type SignatureOptions struct {
-	Signature string `form:"msg_signature"`
-	TimeStamp string `form:"timestamp"`
-	Nonce     string `form:"nonce"`
-	EchoStr   string `form:"echostr"`
+	kf.SignatureOptions
+}
+
+type SyncMsgOptions struct {
+	kf.SyncMsgOptions
+}
+
+type SyncMsgSchema struct {
+	kf.SyncMsgSchema
+}
+
+type Message struct {
+	syncmsg.Message
 }
 
 type MessageInfo struct {
@@ -33,11 +47,18 @@ type MessageInfo struct {
 	Credential  string `json:"credential"`
 	ChatState   int    `json:"chatstate"`
 }
+type BaseSendMsgOptions struct {
+	Touser   string `json:"touser"`          // 指定接收消息的客户UserID
+	OpenKfid string `json:"open_kfid"`       // 指定发送消息的客服账号ID
+	MsgID    string `json:"msgid,omitempty"` // 指定消息ID
+	MsgType  string `json:"msgtype"`         // 消息类型
+}
 
 type SendTextMsgOptions struct {
-	KFID    string `json:"kfid"`
-	KHID    string `json:"khid"`
-	Message string `json:"message"`
+	BaseSendMsgOptions
+	Text struct {
+		Content string `json:"content"`
+	} `json:"text"`
 }
 
 type SendMenuMsgOptions struct {
@@ -84,14 +105,31 @@ type MenuItem struct {
 }
 
 type ServiceStateTransOptions struct {
-	OpenKFID       string `json:"open_kfid"`       // 客服帐号ID
-	ExternalUserID string `json:"external_userid"` // 微信客户的external_userid
-	ServicerUserID string `json:"servicer_userid"` // 接待人员的userid，当state=3时要求必填，接待人员须处于“正在接待”中
+	kf.ServiceStateTransOptions
+}
+
+type ServiceStateTransSchema struct {
+	kf.ServiceStateTransSchema
 }
 
 type ServiceStateGetOptions struct {
-	OpenKFID       string `json:"open_kfid"`       // 客服帐号ID
-	ExternalUserID string `json:"external_userid"` // 微信客户的external_userid
+	kf.ServiceStateGetOptions
+}
+
+type ServiceStateGetSchema struct {
+	kf.ServiceStateGetSchema
+}
+
+type Text struct {
+	syncmsg.Text
+}
+
+type EnterSessionEvent struct {
+	syncmsg.EnterSessionEvent
+}
+
+type SessionStatusChangeEvent struct {
+	syncmsg.SessionStatusChangeEvent
 }
 
 type ReceptionistOptions struct {
