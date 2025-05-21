@@ -5,4 +5,5 @@ type Staff struct {
 	StaffName string `json:"staffname"`
 	Number    string `json:"number"`
 	Email     string `json:"email"`
+	Role      string `json:"role"`
 }

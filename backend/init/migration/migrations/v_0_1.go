@@ -8,7 +8,7 @@ import (
 )
 
 var AddTableMaxkbConf = &gormigrate.Migration{
-	ID: "20241113-add-table-llmapp-config",
+	ID: "20250515-add-table-llmapp-config",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.LLMAppConfig{}); err != nil {
 			return err
@@ -18,7 +18,7 @@ var AddTableMaxkbConf = &gormigrate.Migration{
 }
 
 var AddTableWecomConf = &gormigrate.Migration{
-	ID: "20241113-add-table-wecom-config",
+	ID: "20250515-add-table-wecom-config",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.WecomConfig{}); err != nil {
 			return err
@@ -38,7 +38,7 @@ var AddTableWecomConf = &gormigrate.Migration{
 }
 
 var AddTableKH = &gormigrate.Migration{
-	ID: "20241113-add-table-kh",
+	ID: "20250515-add-table-kh",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.KH{}); err != nil {
 			return err
@@ -48,7 +48,7 @@ var AddTableKH = &gormigrate.Migration{
 }
 
 var AddTableChatList = &gormigrate.Migration{
-	ID: "20241113-add-table-chat-list",
+	ID: "20250515-add-table-chat-list",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.ChatList{}); err != nil {
 			return err
@@ -58,7 +58,7 @@ var AddTableChatList = &gormigrate.Migration{
 }
 
 var AddTableKF = &gormigrate.Migration{
-	ID: "20241113-add-table-kf",
+	ID: "20250515-add-table-kf",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.KF{}); err != nil {
 			return err
@@ -68,7 +68,7 @@ var AddTableKF = &gormigrate.Migration{
 }
 
 var AddTableKFStaff = &gormigrate.Migration{
-	ID: "20241113-add-table-kf-staff",
+	ID: "20250515-add-table-kf-staff",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.KF{}, &model.Staff{}); err != nil {
 			return err
@@ -78,7 +78,7 @@ var AddTableKFStaff = &gormigrate.Migration{
 }
 
 var AddTableStaff = &gormigrate.Migration{
-	ID: "20241113-add-table-staff",
+	ID: "20250515-add-table-staff",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.Staff{}); err != nil {
 			return err
@@ -88,7 +88,7 @@ var AddTableStaff = &gormigrate.Migration{
 }
 
 var AddTableStaffPolicy = &gormigrate.Migration{
-	ID: "20241113-add-table-staff-policy",
+	ID: "20250515-add-table-staff-policy",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.Staff{}, &model.Policy{}); err != nil {
 			return err
@@ -98,7 +98,7 @@ var AddTableStaffPolicy = &gormigrate.Migration{
 }
 
 var AddTablePolicy = &gormigrate.Migration{
-	ID: "20241113-add-table-policy",
+	ID: "20250515-add-table-policy",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.Policy{}); err != nil {
 			return err
@@ -108,7 +108,7 @@ var AddTablePolicy = &gormigrate.Migration{
 }
 
 var AddTableWorkTime = &gormigrate.Migration{
-	ID: "20241113-add-table-work-time",
+	ID: "20250515-add-table-work-time",
 	Migrate: func(tx *gorm.DB) error {
 		if err := tx.AutoMigrate(&model.WorkTime{}); err != nil {
 			return err

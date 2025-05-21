@@ -6,6 +6,7 @@ import (
 	"EvoBot/backend/init/migration"
 	"EvoBot/backend/init/redis"
 	"EvoBot/backend/init/router"
+	"EvoBot/backend/init/support"
 	"EvoBot/backend/init/viper"
 	"EvoBot/backend/init/zaplog"
 	"fmt"
@@ -19,6 +20,7 @@ func Start(configPath string) {
 	db.Init()
 	migration.Init()
 
+	support.Init()
 	r := router.Init()
 
 	r.Run(fmt.Sprintf("%s:%d", global.CONF.SystemConfig.Host, global.CONF.SystemConfig.Port))

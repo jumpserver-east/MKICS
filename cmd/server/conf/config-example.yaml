@@ -22,6 +22,11 @@ redis:
   min_idle_conns: 0
   idleTimeout: 0
 
+support:
+  baseurl: 127.0.0.1
+  username: admin
+  password: Evobot!
+
 auth:
   secret: "Evobot!"
   jwt_expired: 7200s

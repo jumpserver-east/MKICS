@@ -62,15 +62,14 @@ type SendTextMsgOptions struct {
 }
 
 type SendMenuMsgOptions struct {
-	KFID string `json:"kfid"`
-	KHID string `json:"khid"`
-	MenuMsgOptions
+	BaseSendMsgOptions
+	MenuMsgOptions `json:"msgmenu"`
 }
 
 type MenuMsgOptions struct {
-	HeadContent string     `json:"headContent,omitempty"`
-	MenuList    []MenuItem `json:"menuList,omitempty"`
-	TailContent string     `json:"tailContent,omitempty"`
+	HeadContent string     `json:"head_content,omitempty"`
+	List        []MenuItem `json:"list,omitempty"`
+	TailContent string     `json:"tail_content,omitempty"`
 }
 
 type SendTextMsgOnEventOptions struct {

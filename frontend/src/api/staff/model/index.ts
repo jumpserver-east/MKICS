@@ -6,6 +6,7 @@ export interface IStaff {
     staffid?: string;
     number?: string;
     email?: string;
+    role?: string;
     policy_list?: string[];
     policies?: Array<IPolicy>;
 }

@@ -165,7 +165,7 @@ func (u *WecomLogic) SyncMsg(options wecomclient.SyncMsgOptions) (err error) {
 			if err := u.processMessage(wecomclient.Message{
 				Message: msg,
 			}); err != nil {
-				return err
+				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "processMessage"), zap.Error(err))
 			}
 		}
 		if err = global.RDS.Set(context.Background(), wecomCursorKey, resp.NextCursor, 0).Err(); err != nil {
@@ -377,12 +377,167 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 	}
 	switch kFInfo.Status {
 	case constant.KFStatusRobotToHuman:
-		for _, keyword := range strings.Split(kFInfo.TransferKeywords, ";") {
-			if textMessage.Text.Text.Content == keyword {
-				return u.handleTransferToStaff(textMessage, kFInfo)
+		kHInfo, _ := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
+		switch kHInfo.VerifyStatus {
+		case 0, 1:
+			for _, keyword := range strings.Split(kFInfo.TransferKeywords, ";") {
+				if textMessage.Text.Text.Content == keyword {
+					selectRoleMsg := "#H 您好，请选择需要的咨询:\n#TXT -------------------------\n#CLK 售前咨询\n#TXT -------------------------\n#CLK 售后服务支持\n#TXT -------------------------\n#CLK 返回和智能助手对话\n#T -------------------------"
+					err = u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+						BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+							Touser:   textMessage.ExternalUserID,
+							OpenKfid: textMessage.OpenKFID,
+						},
+						MenuMsgOptions: parseMenuText(selectRoleMsg),
+					})
+					if err != nil {
+						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendMenuMsg"), zap.Error(err))
+					}
+					return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 2, KHID: textMessage.ExternalUserID})
+				}
 			}
+			return u.handleBotReply(textMessage)
+		case 2:
+			switch textMessage.Text.Text.Content {
+			// case "商务问题咨询":
+			// 	var sendTextMsgOptions wecomclient.SendTextMsgOptions
+			// 	sendTextMsgOptions.Touser = textMessage.ExternalUserID
+			// 	sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+			// 	sendTextMsgOptions.Text.Content = "正在为你转接人工..."
+			// 	err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+			// 	if err != nil {
+			// 		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+			// 	}
+			// 	err = u.handleTransferToStaff(textMessage, kFInfo, "销售")
+			// 	if err != nil {
+			// 		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "handleTransferToStaff"), zap.Error(err))
+			// 	}
+			// 	return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+			case "售前咨询":
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "正在为你转接人工..."
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+				}
+				err = u.handleTransferToStaff(textMessage, kFInfo, "售前")
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "handleTransferToStaff"), zap.Error(err))
+				}
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+			case "售后服务支持":
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "您好，感谢联系飞致云，很高兴为您服务！请输入产品序列号、提供公司全称或简称，以便确认您所使用产品信息。产品序列号由字母和数字组成，类似“JSN1234567X”，可登陆产品，在“系统设置-许可证”页面，进行查看。"
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+				}
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 3, KHID: textMessage.ExternalUserID})
+			case "返回和智能助手对话":
+				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+					BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+						OpenKfid: textMessage.OpenKFID,
+						Touser:   textMessage.ExternalUserID,
+					},
+					MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+				})
+				return
+			default:
+				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				return u.handleBotReply(textMessage)
+			}
+		case 3:
+			maker, max := 0, 100
+			for {
+				resp, err := global.Support.GetSubscriptionsWithQuickSearch(maker, max, textMessage.Text.Text.Content)
+				maker = resp.Total
+				global.ZAPLOG.Debug("", zap.Any("", resp.Data))
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				if err != nil {
+					if err := kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID}); err != nil {
+						return err
+					}
+					sendTextMsgOptions.Text.Content = "内部出现错误，可重新发起转人工应答。"
+					if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+						return err
+					}
+					return err
+				}
+				if len(resp.Data) == 0 {
+					sendTextMsgOptions.Text.Content = "验证失败，可重新发起转人工应答。"
+					err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+					if err != nil {
+						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+					}
+					return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				}
+				for _, sub := range resp.Data {
+					if !sub.Expired {
+						selectInfoMsg := fmt.Sprintf(
+							"#H 您的订阅信息如下：\n"+
+								"#TXT 名称：%s\n"+
+								"#TXT 产品：%s\n"+
+								"#TXT 服务类型：%s\n"+
+								"#TXT 授权数量：%d\n"+
+								"#CLK 正确\n"+
+								"#CLK 不正确",
+							sub.Client.Name,
+							sub.ProductService.Name,
+							sub.ServiceTypeName,
+							sub.Amount,
+						)
+						u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+							BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+								Touser:   textMessage.ExternalUserID,
+								OpenKfid: textMessage.OpenKFID,
+							},
+							MenuMsgOptions: parseMenuText(selectInfoMsg),
+						})
+						return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 4, KHID: textMessage.ExternalUserID})
+					}
+				}
+			}
+		case 4:
+			switch textMessage.Text.Text.Content {
+			case "正确":
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "正在为你转接人工..."
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+				}
+				err = u.handleTransferToStaff(textMessage, kFInfo, "售后")
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "handleTransferToStaff"), zap.Error(err))
+				}
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+			case "不正确":
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "可重新发起转人工应答"
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+				}
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+			default:
+				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				return u.handleBotReply(textMessage)
+			}
+		default:
+			return u.handleBotReply(textMessage)
 		}
-		return u.handleBotReply(textMessage)
 	case constant.KFStatusOnlyRobot:
 		return u.handleBotReply(textMessage)
 	case constant.KFStatusOnlyHuman:
@@ -474,10 +629,15 @@ func (u *WecomLogic) handleEnterSessionEvent(enterSessionEvent wecomclient.Enter
 	}
 	if serviceStateInfo.ServiceState == wecomclient.SessionStatusHandled {
 		return u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
-			KFID:           enterSessionEvent.OpenKFID,
-			KHID:           enterSessionEvent.ExternalUserID,
+			BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+				OpenKfid: enterSessionEvent.OpenKFID,
+				Touser:   enterSessionEvent.ExternalUserID,
+			},
 			MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
 		})
+	}
+	if enterSessionEvent.Event.WelcomeCode == "" {
+		return
 	}
 	return u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
 		Credential:     enterSessionEvent.Event.WelcomeCode,
@@ -570,12 +730,7 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 		return
 	}
 	global.ZAPLOG.Debug("handleChatTimeoutTask")
-	monitorCtx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
-	go func(ctx context.Context) {
-		defer func() {
-			cancel()
-			global.ZAPLOG.Debug("cancel()")
-		}()
+	go func() {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for {
@@ -596,7 +751,7 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 				return
 			}
 		}
-	}(monitorCtx)
+	}()
 	return
 }
 
@@ -640,7 +795,7 @@ func (u *WecomLogic) handleChatTimeout(serviceStateTransOptions wecomclient.Serv
 	}
 }
 
-func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo model.KF) (err error) {
+func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo model.KF, role string) (err error) {
 	if kFInfo.ReceivePriority == 1 {
 		kHInfo, err := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
 		if err != nil {
@@ -652,6 +807,10 @@ func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo 
 		if kHInfo.StaffID != "" {
 			for _, staffInfo := range kFInfo.Staffs {
 				if staffInfo.StaffID == kHInfo.StaffID {
+					if staffInfo.Role != role {
+						global.ZAPLOG.Debug("服务人员角色不匹配，跳过", zap.String("staffid", staffInfo.StaffID), zap.String("角色", staffInfo.Role))
+						continue
+					}
 					isStaffWork, err := isStaffWorkByStaffID(kHInfo.StaffID)
 					if err != nil {
 						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "isStaffWorkByStaffID"), zap.Error(err))
@@ -674,11 +833,12 @@ func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo 
 	case constant.KFReceiveRuleIdle:
 		var staffIDs []string
 		for _, staffinfo := range kFInfo.Staffs {
+			global.ZAPLOG.Debug("staffinfo", zap.Any("", staffinfo))
 			isStaffWork, err := isStaffWorkByStaffID(staffinfo.StaffID)
 			if err != nil {
 				return err
 			}
-			if isStaffWork {
+			if isStaffWork && staffinfo.Role == role {
 				staffIDs = append(staffIDs, staffinfo.StaffID)
 			}
 		}
@@ -703,17 +863,22 @@ func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo 
 }
 
 func parseMenuText(text string) wecomclient.MenuMsgOptions {
+	var resp wecomclient.MenuMsgOptions
 	lines := strings.Split(text, "\n")
-	headContent := ""
-	tailContent := ""
 	menuList := []wecomclient.MenuItem{}
 	for idx, line := range lines {
 		line = strings.TrimSpace(line)
 		switch {
 		case strings.HasPrefix(line, "#H "):
-			headContent = strings.TrimPrefix(line, "#H ")
+			if resp.HeadContent != "" {
+				resp.HeadContent += "\n"
+			}
+			resp.HeadContent += strings.TrimPrefix(line, "#H ")
 		case strings.HasPrefix(line, "#T "):
-			tailContent = strings.TrimPrefix(line, "#T ")
+			if resp.TailContent != "" {
+				resp.TailContent += "\n"
+			}
+			resp.TailContent += strings.TrimPrefix(line, "#T ")
 		case strings.HasPrefix(line, "#TXT "):
 			menuList = append(menuList, wecomclient.MenuItem{
 				Type: "text",
@@ -781,15 +946,8 @@ func parseMenuText(text string) wecomclient.MenuMsgOptions {
 			}
 		}
 	}
-	var resp wecomclient.MenuMsgOptions
-	if headContent != "" {
-		resp.HeadContent = headContent
-	}
 	if menuList != nil {
-		resp.MenuList = menuList
-	}
-	if tailContent != "" {
-		resp.TailContent = tailContent
+		resp.List = menuList
 	}
 	return resp
 }

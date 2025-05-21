@@ -21,6 +21,11 @@
                 <el-input v-model="formData.email" placeholder="请输入邮箱" />
             </el-form-item>
 
+            <!-- 角色 -->
+            <el-form-item label="角色：" prop="role">
+                <el-input v-model="formData.role" placeholder="请输入角色" />
+            </el-form-item>
+
             <!-- 策略列表 -->
             <el-form-item label="策略列表：" prop="policy_list">
                 <el-select v-model="formData.policy_list" multiple placeholder="请选择策略" :options="policyOptions">
@@ -62,6 +67,7 @@ const formData = reactive<IStaff>({
     staffid: '',
     number: '',
     email: '',
+    role:'',
     policy_list: [], // 存储策略 UUID 列表
 });
 
@@ -69,6 +75,7 @@ const formData = reactive<IStaff>({
 const formRules = reactive<FormRules>({
     staffname: [{ required: true, message: '请输入人员名称', trigger: 'blur' }],
     staffid: [{ required: true, message: '请输入接待人员 ID', trigger: 'blur' }],
+    role: [{ required: true, message: '请输入角色', trigger: 'blur' }],
     policy_list: [
         {
             required: true,

@@ -58,26 +58,12 @@ func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
 	return
 }
 
-func (k *WecomKF) SendMenuMsg(info SendMenuMsgOptions) error {
-	sendmsg := struct {
-		KFID    string `json:"open_kfid"`
-		KHID    string `json:"touser"`
-		MsgID   string `json:"msgid,omitempty"`
-		MsgType string `json:"msgtype"`
-		MsgMenu struct {
-			HeadContent string     `json:"head_content,omitempty"`
-			MenuList    []MenuItem `json:"menuList,omitempty"`
-			TailContent string     `json:"tail_content,omitempty"`
-		} `json:"msgmenu"`
-	}{
-		KFID:    info.KFID,
-		KHID:    info.KHID,
-		MsgType: "msgmenu",
-	}
-	sendmsg.MsgMenu.HeadContent = info.HeadContent
-	sendmsg.MsgMenu.TailContent = info.TailContent
-	sendmsg.MsgMenu.MenuList = info.MenuList
-	if _, err := k.KFClient.SendMsg(sendmsg); err != nil {
+func (k *WecomKF) SendMenuMsg(options SendMenuMsgOptions) error {
+	options.MsgType = "msgmenu"
+	global.ZAPLOG.Debug("", zap.Any("", options))
+	info, err := k.KFClient.SendMsg(options)
+	if err != nil {
+		global.ZAPLOG.Error(info.Error(), zap.Error(err))
 		return err
 	}
 	return nil
@@ -118,7 +104,7 @@ func (k *WecomKF) SendMenuMsgOnEvent(info SendMenuMsgOnEventOptions) error {
 	}
 	sendmsg.MsgMenu.HeadContent = info.HeadContent
 	sendmsg.MsgMenu.TailContent = info.TailContent
-	sendmsg.MsgMenu.List = info.MenuList
+	sendmsg.MsgMenu.List = info.List
 	if _, err := k.KFClient.SendMsgOnEvent(sendmsg); err != nil {
 		return err
 	}

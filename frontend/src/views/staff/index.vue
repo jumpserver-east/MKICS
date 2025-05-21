@@ -41,6 +41,7 @@ const tableConfig: ITableConfig = {
     { prop: 'staffid', label: '接待人员 ID' },
     { prop: 'number', label: '电话号码' },
     { prop: 'email', label: '邮箱' },
+    { prop: 'role', label: '角色' },
     { prop: 'policy_list', label: '策略列表', slot: 'policy_list' },
   ],
   operations: {
