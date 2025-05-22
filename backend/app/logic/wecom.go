@@ -431,7 +431,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 				var sendTextMsgOptions wecomclient.SendTextMsgOptions
 				sendTextMsgOptions.Touser = textMessage.ExternalUserID
 				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
-				sendTextMsgOptions.Text.Content = "您好，感谢联系飞致云，很高兴为您服务！请输入产品序列号、提供公司全称或简称，以便确认您所使用产品信息。产品序列号由字母和数字组成，类似“JSN1234567X”，可登陆产品，在“系统设置-许可证”页面，进行查看。"
+				sendTextMsgOptions.Text.Content = "您好，感谢联系飞致云，很高兴为您服务！请输入产品序列号、提供公司全称或简称，以便确认您所使用产品信息。产品序列号由字母和数字组成，类似“JSN1234567X”，可登陆产品，在“系统设置-许可证”页面，进行查看。（例如：杭州飞致云 或者 JSN1234567X）"
 				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
 				if err != nil {
 					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
@@ -464,7 +464,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 					if err := kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID}); err != nil {
 						return err
 					}
-					sendTextMsgOptions.Text.Content = "内部出现错误，可重新发起转人工应答。"
+					sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
 					if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
 						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 						return err
@@ -472,7 +472,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 					return err
 				}
 				if len(resp.Data) == 0 {
-					sendTextMsgOptions.Text.Content = "验证失败，可重新发起转人工应答。"
+					sendTextMsgOptions.Text.Content = "未匹配到正确的授权，请确认后再次发起人工。"
 					err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
 					if err != nil {
 						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
