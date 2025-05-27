@@ -293,6 +293,17 @@ func (u *WecomLogic) initializeWecomClient() (err error) {
 }
 
 func (u *WecomLogic) processMessage(msg wecomclient.Message) (err error) {
+	_, err = kHRepo.Get(kHRepo.WithKHID(msg.ExternalUserID))
+	if err != nil {
+		global.ZAPLOG.Error("err:", zap.Error(err))
+		if err = kHRepo.Create(model.KH{
+			KHID: msg.ExternalUserID,
+		}); err != nil {
+			global.ZAPLOG.Error("err:", zap.Error(err))
+			return
+		}
+		global.ZAPLOG.Info("new ExternalUser:", zap.String("ExternalUserID", msg.ExternalUserID))
+	}
 	switch msg.MsgType {
 	case wecomclient.WecomMsgTypeText:
 		textMessage, err := msg.GetTextMessage()
