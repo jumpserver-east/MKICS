@@ -18,8 +18,12 @@ type WecomKF struct {
 	Mu         *sync.Mutex
 }
 
-func NewWecomKF(kf WecomKF) *WecomKF {
-	return &kf
+func NewWecomKF(client *kf.Client) *WecomKF {
+	return &WecomKF{
+		KFClient:   client,
+		UserQueues: make(map[string]*UserMsgQueue),
+		Mu:         &sync.Mutex{},
+	}
 }
 
 func (k *WecomKF) VerifyURL(options SignatureOptions) (echo string, err error) {
@@ -33,9 +37,6 @@ func (k *WecomKF) SyncMsgs(options SyncMsgOptions) (info SyncMsgSchema, err erro
 
 func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
 	k.Mu.Lock()
-	if k.UserQueues == nil {
-		k.UserQueues = make(map[string]*UserMsgQueue)
-	}
 	userQueue, exists := k.UserQueues[options.Touser]
 	if !exists {
 		userQueue = &UserMsgQueue{}
