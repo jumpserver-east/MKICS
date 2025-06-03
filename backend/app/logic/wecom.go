@@ -411,20 +411,6 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 			return u.handleBotReply(textMessage)
 		case 2:
 			switch textMessage.Text.Text.Content {
-			// case "商务问题咨询":
-			// 	var sendTextMsgOptions wecomclient.SendTextMsgOptions
-			// 	sendTextMsgOptions.Touser = textMessage.ExternalUserID
-			// 	sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
-			// 	sendTextMsgOptions.Text.Content = "正在为你转接人工..."
-			// 	err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
-			// 	if err != nil {
-			// 		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
-			// 	}
-			// 	err = u.handleTransferToStaff(textMessage, kFInfo, "销售")
-			// 	if err != nil {
-			// 		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "handleTransferToStaff"), zap.Error(err))
-			// 	}
-			// 	return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
 			case "售前咨询":
 				var sendTextMsgOptions wecomclient.SendTextMsgOptions
 				sendTextMsgOptions.Touser = textMessage.ExternalUserID
@@ -460,6 +446,14 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 				})
 				return
 			default:
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "已退出转人工流程，返回和智能助手对话"
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+				}
 				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
 				return u.handleBotReply(textMessage)
 			}
@@ -592,6 +586,14 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 				})
 				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
 			default:
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "已退出转人工流程，返回和智能助手对话"
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+				}
 				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
 				return u.handleBotReply(textMessage)
 			}
