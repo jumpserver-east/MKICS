@@ -47,11 +47,13 @@ type MessageInfo struct {
 	Credential  string `json:"credential"`
 	ChatState   int    `json:"chatstate"`
 }
+
 type BaseSendMsgOptions struct {
-	Touser   string `json:"touser"`          // 指定接收消息的客户UserID
-	OpenKfid string `json:"open_kfid"`       // 指定发送消息的客服账号ID
-	MsgID    string `json:"msgid,omitempty"` // 指定消息ID
-	MsgType  string `json:"msgtype"`         // 消息类型
+	Touser         string `json:"touser"`          // 指定接收消息的客户UserID
+	OpenKfid       string `json:"open_kfid"`       // 指定发送消息的客服账号ID
+	MsgID          string `json:"msgid,omitempty"` // 指定消息ID
+	MsgType        string `json:"msgtype"`         // 消息类型
+	ForceImmediate bool   `json:"forceImmediate"`  // 立即发出
 }
 
 type SendTextMsgOptions struct {

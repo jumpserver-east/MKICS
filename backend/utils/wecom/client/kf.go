@@ -3,6 +3,7 @@ package client
 import (
 	"EvoBot/backend/global"
 	"sync"
+	"time"
 
 	"github.com/silenceper/wechat/v2/work/kf"
 	"go.uber.org/zap"
@@ -36,6 +37,19 @@ func (k *WecomKF) SyncMsgs(options SyncMsgOptions) (info SyncMsgSchema, err erro
 }
 
 func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
+	options.MsgType = "text"
+	if options.ForceImmediate {
+		for _, content := range splitContent(options.Text.Content) {
+			options.Text.Content = content
+			info, err := k.KFClient.SendMsg(options)
+			if err != nil {
+				global.ZAPLOG.Error(info.Error(), zap.Error(err))
+				return err
+			}
+			time.Sleep(1 * time.Second)
+		}
+		return nil
+	}
 	k.Mu.Lock()
 	userQueue, exists := k.UserQueues[options.Touser]
 	if !exists {
@@ -47,7 +61,6 @@ func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
 	userQueue.mu.Lock()
 	defer userQueue.mu.Unlock()
 
-	options.MsgType = "text"
 	for _, content := range splitContent(options.Text.Content) {
 		options.Text.Content = content
 		info, err := k.KFClient.SendMsg(options)
@@ -55,6 +68,7 @@ func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
 			global.ZAPLOG.Error(info.Error(), zap.Error(err))
 			return err
 		}
+		time.Sleep(1 * time.Second)
 	}
 	return
 }

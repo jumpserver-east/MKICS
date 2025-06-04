@@ -8,6 +8,7 @@ import (
 	"EvoBot/backend/constant"
 	"EvoBot/backend/global"
 	"EvoBot/backend/i18n"
+	utils "EvoBot/backend/utils/redis"
 	"EvoBot/backend/utils/wecom"
 	wecomclient "EvoBot/backend/utils/wecom/client"
 	"fmt"
@@ -150,26 +151,36 @@ func (u *WecomLogic) CallbackHandler(encryptedMsg []byte) (err error) {
 }
 
 func (u *WecomLogic) SyncMsg(options wecomclient.SyncMsgOptions) (err error) {
+	ctx := context.Background()
 	wecomCursorLockKey := wecomclient.KeyWecomCursorLockPrefix + options.OpenKfID
-	if !global.RDS.SetNX(context.Background(), wecomCursorLockKey, "1", 30*time.Second).Val() {
-		return
+	wecomCursorLockVal, ok := utils.AcquireRedisLockWithRetry(ctx, global.RDS, wecomCursorLockKey, 30*time.Second, 500*time.Millisecond, 30*time.Second)
+	if !ok {
+		global.ZAPLOG.Warn("无法获取同步锁，跳过本轮")
+		return nil
 	}
-	defer global.RDS.Del(context.Background(), wecomCursorLockKey)
+	defer utils.ReleaseRedisLock(ctx, global.RDS, wecomCursorLockKey, wecomCursorLockVal)
+
 	wecomCursorKey := wecomclient.KeyWecomCursorPrefix + options.OpenKfID
-	options.Cursor, _ = global.RDS.Get(context.Background(), wecomCursorKey).Result()
+	options.Cursor, err = global.RDS.Get(ctx, wecomCursorKey).Result()
+	if err != nil && err != redis.Nil {
+		global.ZAPLOG.Error("Get Wecom Cursor error", zap.Error(err))
+		return err
+	}
 	for {
 		resp, err := u.wecomkf.SyncMsgs(options)
 		if err != nil {
 			break
 		}
 		for _, msg := range resp.MsgList {
-			if err := u.processMessage(wecomclient.Message{
-				Message: msg,
-			}); err != nil {
-				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "processMessage"), zap.Error(err))
-			}
+			go func() {
+				if err := u.processMessage(wecomclient.Message{
+					Message: msg,
+				}); err != nil {
+					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "processMessage"), zap.Error(err))
+				}
+			}()
 		}
-		if err = global.RDS.Set(context.Background(), wecomCursorKey, resp.NextCursor, 0).Err(); err != nil {
+		if err = global.RDS.Set(ctx, wecomCursorKey, resp.NextCursor, 0).Err(); err != nil {
 			break
 		}
 		if resp.HasMore == 0 {
@@ -397,8 +408,9 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 					selectRoleMsg := "#H 您好，请选择需要的咨询:\n#TXT -------------------------\n#CLK 售前咨询\n#TXT -------------------------\n#CLK 售后服务支持\n#TXT -------------------------\n#CLK 返回和智能助手对话\n#T -------------------------"
 					err = u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
 						BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
-							Touser:   textMessage.ExternalUserID,
-							OpenKfid: textMessage.OpenKFID,
+							Touser:         textMessage.ExternalUserID,
+							OpenKfid:       textMessage.OpenKFID,
+							ForceImmediate: true,
 						},
 						MenuMsgOptions: parseMenuText(selectRoleMsg),
 					})
@@ -436,7 +448,6 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 				}
 				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 3, KHID: textMessage.ExternalUserID})
 			case "返回和智能助手对话":
-				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
 				u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
 					BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
 						OpenKfid: textMessage.OpenKFID,
@@ -444,7 +455,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 					},
 					MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
 				})
-				return
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
 			default:
 				var sendTextMsgOptions wecomclient.SendTextMsgOptions
 				sendTextMsgOptions.Touser = textMessage.ExternalUserID
@@ -454,7 +465,10 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 				if err != nil {
 					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 				}
-				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				err = kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				if err != nil {
+					return
+				}
 				return u.handleBotReply(textMessage)
 			}
 		case 3:
@@ -594,7 +608,10 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 				if err != nil {
 					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 				}
-				kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				err = kHRepo.UpdatebyKHID(model.KH{VerifyStatus: 1, KHID: textMessage.ExternalUserID})
+				if err != nil {
+					return
+				}
 				return u.handleBotReply(textMessage)
 			}
 		default:
