@@ -20,3 +20,9 @@ const (
 	KFReceiveRuleRoundRobin int = iota + 1 // 1 轮流接待
 	KFReceiveRuleIdle                      // 2 空闲接待
 )
+
+const (
+	KHStatusUnprocessed     int = iota + 1 // 未处理
+	KHStatusVerification                   // 验证
+	KHStatusUserInfoConfirm                // 用户信息确认
+)

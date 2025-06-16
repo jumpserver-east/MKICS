@@ -133,7 +133,6 @@ func MarkdownToText(markdown string) string {
 	text = regexp.MustCompile(`\*\*(.*?)\*\*`).ReplaceAllString(text, "$1")
 	text = regexp.MustCompile(`__(.*?)__`).ReplaceAllString(text, "$1")
 	text = regexp.MustCompile(`\*(.*?)\*`).ReplaceAllString(text, "$1")
-	text = regexp.MustCompile(`_(.*?)_`).ReplaceAllString(text, "$1")
 	text = regexp.MustCompile(`\[.*?\]\((.*?)\)`).ReplaceAllString(text, "$1")
 	text = strings.ReplaceAll(text, "\n\n", "\n")
 	reNewline := regexp.MustCompile(`\n+`)
