@@ -424,6 +424,8 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 			if err != nil {
 				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 			}
+			verifyKey := fmt.Sprintf("verify_attempt:%s", textMessage.ExternalUserID)
+			global.RDS.Set(context.Background(), verifyKey, 0, 900*time.Second)
 			return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusVerification, KHID: textMessage.ExternalUserID})
 		case textMessage.Text.Text.Content == "返回和智能助手对话":
 			u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
@@ -456,13 +458,19 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 			return u.handleBotReply(textMessage)
 		case constant.KHStatusVerification:
 			const (
-				verifyMaxAttempts    = 3
-				verifyExpireDuration = time.Hour // 设置尝试有效期 1 小时
+				verifyMaxAttempts = 3
 			)
 			verifyKey := fmt.Sprintf("verify_attempt:%s", textMessage.ExternalUserID)
 			ctx := context.Background()
 			attempts, err := global.RDS.Get(ctx, verifyKey).Int()
-			if err != nil && err != redis.Nil {
+			if err == redis.Nil {
+				kHRepo.UpdatebyKHID(model.KH{
+					VerifyStatus: constant.KHStatusUnprocessed,
+					KHID:         textMessage.ExternalUserID,
+				})
+				return u.handleBotReply(textMessage)
+			}
+			if err != nil {
 				return err
 			}
 			var sendTextMsgOptions wecomclient.SendTextMsgOptions
@@ -507,11 +515,14 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 				}
 				if len(resp.Data) == 0 {
 					attempts, _ := global.RDS.Incr(ctx, verifyKey).Result()
-					if attempts == 1 {
-						global.RDS.Expire(ctx, verifyKey, verifyExpireDuration)
-					}
-					sendTextMsgOptions.Text.Content = fmt.Sprintf("未匹配到正确的授权，请确认后再次发起人工，例如：杭州飞致云 或者 JSN1234567X（剩余尝试次数：%d）。", verifyMaxAttempts-int(attempts)+1)
-					err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+					noPermInfo := fmt.Sprintf("#H 未匹配到正确的授权，请确认后再次发起人工，例如：杭州飞致云 或者 JSN1234567X。\n#TXT 剩余尝试次数：%d\n#CLK 返回和智能助手对话", verifyMaxAttempts-int(attempts)+1)
+					err := u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+						BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+							Touser:   textMessage.ExternalUserID,
+							OpenKfid: textMessage.OpenKFID,
+						},
+						MenuMsgOptions: parseMenuText(noPermInfo),
+					})
 					if err != nil {
 						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 					}
@@ -544,9 +555,6 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 					}
 				}
 				attempts, _ := global.RDS.Incr(ctx, verifyKey).Result()
-				if attempts == 1 {
-					global.RDS.Expire(ctx, verifyKey, verifyExpireDuration)
-				}
 				sendTextMsgOptions.Text.Content = fmt.Sprintf("检测到您的授权已过期，当前无法匹配到有效服务。您可以联系管理员或销售人员续费。请确认后再次输入正确授权，例如：杭州飞致云 或者 JSN1234567X（剩余尝试次数：%d）", verifyMaxAttempts-int(attempts)+1)
 				if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
 					global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
