@@ -72,10 +72,3 @@ yarn dev 启动开发环境
 访问
 
 http://127.0.0.1:5173
-
-# 展示
-![alt text](docs/frontend-1.png)
-![alt text](docs/swagger.png)
-![alt text](docs/image-3.png)
-![alt text](docs/image-1.png)
-![alt text](docs/image-2.png)
