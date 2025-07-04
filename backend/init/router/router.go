@@ -1,82 +1,119 @@
 package router
 
 import (
-	"EvoBot/backend/constant"
+	web "EvoBot"
 	"EvoBot/backend/global"
-	rou "EvoBot/backend/router"
-	"EvoBot/cmd/server/docs"
-	"EvoBot/cmd/server/web"
-	"fmt"
+	_router "EvoBot/backend/router"
+	"EvoBot/cmd/docs"
+	"io/fs"
 	"net/http"
-	"regexp"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func toIndexHtml(c *gin.Context) {
-	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	c.Writer.WriteHeader(http.StatusOK)
-	_, _ = c.Writer.Write(web.IndexByte)
-	c.Writer.Flush()
+type StaticFSWrapper struct {
+	http.FileSystem
+	FixedModTime time.Time
 }
 
-func isFrontendPath(c *gin.Context) bool {
-	reqUri := strings.TrimSuffix(c.Request.URL.Path, "/")
-	if _, ok := constant.WebUrlMap[reqUri]; ok {
-		return true
-	}
-	for _, route := range constant.DynamicRoutes {
-		if match, _ := regexp.MatchString(route, reqUri); match {
-			return true
+func (f *StaticFSWrapper) Open(name string) (http.File, error) {
+	file, err := f.FileSystem.Open(name)
+
+	return &StaticFileWrapper{File: file, fixedModTime: f.FixedModTime}, err
+}
+
+type StaticFileWrapper struct {
+	http.File
+	fixedModTime time.Time
+}
+
+func (f *StaticFileWrapper) Stat() (os.FileInfo, error) {
+
+	fileInfo, err := f.File.Stat()
+
+	return &StaticFileInfoWrapper{FileInfo: fileInfo, fixedModTime: f.fixedModTime}, err
+}
+
+type StaticFileInfoWrapper struct {
+	os.FileInfo
+	fixedModTime time.Time
+}
+
+func (f *StaticFileInfoWrapper) ModTime() time.Time {
+	return f.fixedModTime
+}
+
+func getUIAssetFs() http.FileSystem {
+	uiAssetFs, err := fs.Sub(web.UIFs, "frontend/dist/assets")
+	if err != nil {
+
+		return &StaticFSWrapper{
+			FileSystem:   http.Dir("./frontend/dist/assets"),
+			FixedModTime: time.Now(),
 		}
 	}
-	return false
-}
-
-func setWebStatic(rootRouter *gin.RouterGroup) {
-	rootRouter.StaticFS("/public", http.FS(web.Favicon))
-	rootRouter.Static("/api/v1/images", "./uploads")
-	rootRouter.Use(func(c *gin.Context) {
-		c.Next()
-	})
-	rootRouter.GET("/assets/*filepath", func(c *gin.Context) {
-		c.Writer.Header().Set("Cache-Control", fmt.Sprintf("private, max-age=%d", 3600))
-		staticServer := http.FileServer(http.FS(web.Assets))
-		staticServer.ServeHTTP(c.Writer, c.Request)
-	})
-	rootRouter.GET("/", func(c *gin.Context) {
-		staticServer := http.FileServer(http.FS(web.IndexHtml))
-		staticServer.ServeHTTP(c.Writer, c.Request)
-	})
+	return &StaticFSWrapper{
+		FileSystem:   http.FS(uiAssetFs),
+		FixedModTime: time.Now(),
+	}
 }
 
 func Init() *gin.Engine {
-	r := gin.Default()
-	r.NoRoute(func(c *gin.Context) {
-		if isFrontendPath(c) {
-			toIndexHtml(c)
+	if global.CONF.LogConfig.Model != "dev" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	eng := gin.New()
+	eng.Use(gin.Recovery())
+	eng.Use(gin.Logger())
+
+	eng.NoRoute(func(ctx *gin.Context) {
+		if strings.HasPrefix(ctx.Request.URL.Path, "/ui/") {
+			ctx.FileFromFS("frontend/dist/", http.FS(web.UIFs))
 			return
 		}
+		ctx.JSON(404, gin.H{"error": "not found"})
 	})
+
 	// swaggerRouter := r.Group("evobot").Use(middleware.AuthRequired())
 	docs.SwaggerInfo.BasePath = "/api/v1"
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
-	PublicGroup := r.Group("")
+	eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
+	eng.StaticFS("/ui/assets", getUIAssetFs())
+	eng.StaticFileFS("/ui/favicon.ico", "frontend/dist/favicon.ico", http.FS(web.UIFs))
+
+	eng.Static("/api/v1/images", "./uploads")
+	eng.GET("/health", func(c *gin.Context) {
+		c.JSON(200, "ok")
+	})
+
+	indexGroup := eng.Group("/")
 	{
-		PublicGroup.GET("/health", func(c *gin.Context) {
-			c.JSON(200, "ok")
+		indexGroup.Use(gzip.Gzip(gzip.DefaultCompression))
+		indexGroup.GET("/", func(ctx *gin.Context) {
+			ctx.FileFromFS("frontend/dist/", http.FS(web.UIFs))
 		})
-		PublicGroup.Use(gzip.Gzip(gzip.DefaultCompression))
-		setWebStatic(PublicGroup)
 	}
-	PrivateGroup := r.Group("/api/v1")
-	for _, router := range rou.RouterGroupApp {
+
+	uiGroup := eng.Group("/ui")
+	{
+		uiGroup.Use(gzip.Gzip(gzip.DefaultCompression))
+		uiGroup.GET("/", func(ctx *gin.Context) {
+			ctx.FileFromFS("frontend/dist/", http.FS(web.UIFs))
+		})
+	}
+
+	PrivateGroup := eng.Group("/api/v1")
+	for _, router := range _router.RouterGroupApp {
 		router.InitRouter(PrivateGroup)
 	}
+
 	global.ZAPLOG.Info("init router success")
-	return r
+	return eng
 }

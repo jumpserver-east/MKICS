@@ -1,7 +1,7 @@
 package main
 
 import (
-	"EvoBot/cmd/server/cmd"
+	"EvoBot/cmd/cmd"
 	"fmt"
 	"os"
 )

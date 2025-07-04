@@ -1,39 +1,39 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import NProgress from 'nprogress'
-import 'nprogress/nprogress.css'
-import { getToken } from '@/utils'
-import routes from './routes'
+import { createRouter, createWebHistory } from "vue-router";
+import NProgress from "nprogress";
+import "nprogress/nprogress.css";
+import { getToken } from "@/utils";
+import routes from "./routes";
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
+  history: createWebHistory("ui"),
+  routes,
+});
 
 router.beforeEach((to, from, next) => {
   if (to.name !== from.name) {
-    NProgress.start()
+    NProgress.start();
   }
 
   window.document.title = to.meta.title
     ? `${to.meta.title} | Evobot`
-    : 'Evobot'
+    : "Evobot";
 
-  const isLogin = getToken()
+  const isLogin = getToken();
   if (isLogin) {
-    if (to.name === 'login') {
-      next('/')
+    if (to.name === "login") {
+      next("/");
     } else {
-      next()
+      next();
     }
-  } else if (to.name !== 'login') {
-    next('/login')
+  } else if (to.name !== "login") {
+    next("/login");
   } else {
-    next()
+    next();
   }
-})
+});
 
 router.afterEach(() => {
-  NProgress.done()
-})
+  NProgress.done();
+});
 
-export default router
+export default router;
