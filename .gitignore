@@ -32,3 +32,6 @@ cmd/server/web/index.html
 
 # go sum
 go.sum
+
+build/
+logs/
