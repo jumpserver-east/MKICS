@@ -1,13 +1,12 @@
 services:
   evobot:
-    image: evobot:${VERSION}
+    image: jumpserver-east/evobot:${VERSION}
     container_name: evobot
     ulimits:
       core: 0
     ports:
       - "24916:24916"
     volumes:
-      - /opt/evobot/log/EvoBot.log:/opt/evobot/EvoBot.log
-      - /opt/evobot/config/config.yaml:/opt/evobot/config.yaml
+      - ${VOLUME_DIR}/log:/opt/evobot/log
+      - ${VOLUME_DIR}/config/:/opt/evobot/conf
     restart: always
-image: evobot:dev-9b8d4ea

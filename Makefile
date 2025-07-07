@@ -15,27 +15,35 @@ UIDIR=frontend
 .PHONY: docker
 docker:
 	@echo "build docker images"
-	docker build --platform=linux/amd64 -f Dockerfile -t jumpserver-east/evobot:$(VERSION) .
+	docker build --platform=linux/amd64 -f Dockerfile -t jumpserver-east/$(NAME):$(VERSION) .
 
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)
 	rm -rf $(UIDIR)/dist
 
+update-version:
+	@echo "▶ 版本号为: $(VERSION)"
+	@cd installer && if [ -f .env ]; then \
+		grep -v '^VERSION=' .env > .env.tmp; \
+		echo "VERSION=$(VERSION)" >> .env.tmp; \
+	else \
+		echo "VERSION=$(VERSION)" > .env; \
+	fi
+	@echo "✓ env.txt 已更新"
+
 .PHONY: package
-package: docker
+package: update-version docker
 	@echo "▶ 开始打包版本: $(VERSION)"
 	@rm -rf $(BUILDDIR)
-	@mkdir -p $(BUILDDIR)/evobot/
+	@mkdir -p $(BUILDDIR)/$(NAME)/
 	
-	cp installer/docker-compose.yml $(BUILDDIR)/evobot/
-	cp cmd/conf/config-example.yaml $(BUILDDIR)/evobot/
+	mv installer/.env.tmp $(BUILDDIR)/$(NAME)/.env
+	cp installer/docker-compose.yml $(BUILDDIR)/$(NAME)/
+	cp cmd/conf/config-example.yaml $(BUILDDIR)/$(NAME)/
 	
-	@echo "▶ 版本号为: $(VERSION)"
-	sed -i '' 's|^\([[:space:]]*image:[[:space:]]*evobot:\).*|\1$(VERSION)|' build/evobot/docker-compose.yml
-
-	docker save -o $(BUILDDIR)/evobot/evobot-$(VERSION)-docker-image.tar jumpserver-east/evobot:$(VERSION)
+	docker save -o $(BUILDDIR)/$(NAME)/$(NAME)-$(VERSION)-docker-image.tar jumpserver-east/$(NAME):$(VERSION)
 	
-	tar -czvf $(BUILDDIR)/evobot-installer-$(VERSION)-package.tar.gz -C $(BUILDDIR)/evobot .
+	tar -czvf $(BUILDDIR)/$(NAME)-installer-$(VERSION)-package.tar.gz -C $(BUILDDIR)/$(NAME) .
 	
-	@echo "✓ 打包完成: $(BUILDDIR)/evobot-installer-$(VERSION)-package.tar.gz"
+	@echo "✓ 打包完成: $(BUILDDIR)/$(NAME)-installer-$(VERSION)-package.tar.gz"

@@ -52,4 +52,4 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 EXPOSE 24916
 
-CMD ["/opt/evobot/evobot", "-c", "/opt/evobot/config.yaml"]
+CMD ["/opt/evobot/evobot", "-c", "/opt/evobot/conf/config.yaml"]

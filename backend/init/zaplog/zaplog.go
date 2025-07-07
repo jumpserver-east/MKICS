@@ -10,7 +10,7 @@ import (
 )
 
 func Init() {
-	writeSyncer := getLogWriter(global.CONF.LogConfig.Filename, global.CONF.LogConfig.MaxSize, global.CONF.LogConfig.MaxBackups, global.CONF.LogConfig.MaxAge)
+	writeSyncer := getLogWriter("log/evobot.log", global.CONF.LogConfig.MaxSize, global.CONF.LogConfig.MaxBackups, global.CONF.LogConfig.MaxAge)
 	encoder := getProdEncoder()
 	var l = new(zapcore.Level)
 	err := l.UnmarshalText([]byte(global.CONF.LogConfig.Level))
