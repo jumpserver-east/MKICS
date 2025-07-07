@@ -670,7 +670,11 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 		}
 		return
 	case err = <-errorChan:
-		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ChatMessage"), zap.Error(err))
+		sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
+		if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+			return err
+		}
 		return
 	}
 }
