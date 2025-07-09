@@ -25,7 +25,7 @@ func (b *BaseApi) Login(ctx *gin.Context) {
 	}
 	tokens, err := authLogic.Login(ctx, req)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
 		return
 	}
 	helper.SuccessWithData(ctx, tokens)

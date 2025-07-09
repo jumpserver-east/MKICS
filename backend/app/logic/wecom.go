@@ -468,7 +468,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 					VerifyStatus: constant.KHStatusUnprocessed,
 					KHID:         textMessage.ExternalUserID,
 				})
-				return u.handleBotReply(textMessage)
+				return u.handleBotSession(textMessage)
 			}
 			if err != nil {
 				return err
@@ -635,9 +635,8 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 	sendTextMsgOptions.Touser = textMessage.ExternalUserID
 	sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
 	go func() {
-		message := textMessage.Text.Text.Content + kFInfo.BotPrompt
 		llmappLogic := NewILLMAppLogic()
-		fullContent, err := llmappLogic.ChatMessage(textMessage.ExternalUserID, kFInfo.BotID, message)
+		fullContent, err := llmappLogic.ChatMessage(textMessage.ExternalUserID, kFInfo.BotID, textMessage.Text.Text.Content)
 		if err != nil {
 			errorChan <- err
 		} else {
@@ -660,7 +659,11 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 			}
 			return
 		case err = <-errorChan:
-			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ChatMessage"), zap.Error(err))
+			sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
+			if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ChatMessage"), zap.Error(err))
+				return err
+			}
 			return
 		}
 	case fullContent := <-resultChan:
