@@ -52,12 +52,13 @@ func (u *WecomLogic) ConfigUpdate(uuid string, req request.WecomConfigApp) error
 		global.ZAPLOG.Error("failed to get Wecom config", zap.Error(err))
 		return err
 	}
+	conf.UUID = uuid
 	conf.CorpID = req.CorpID
 	conf.Secret = req.Secret
 	conf.AgentID = req.AgentID
 	conf.Token = req.Token
 	conf.EncodingAESKey = req.EncodingAESKey
-	err = wecomRepo.Update(context.Background(), &conf)
+	err = wecomRepo.Update(&conf)
 	if err != nil {
 		global.ZAPLOG.Error("failed to update Wecom config", zap.Error(err))
 		return err

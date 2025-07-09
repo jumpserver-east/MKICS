@@ -1,10 +1,6 @@
 package repo
 
 import (
-	"EvoBot/backend/constant"
-	"EvoBot/backend/global"
-	"context"
-
 	"gorm.io/gorm"
 )
 
@@ -45,23 +41,4 @@ func (c *CommonRepo) WithUUIDsIn(uuid []string) DBOption {
 	return func(g *gorm.DB) *gorm.DB {
 		return g.Where("uuid in (?)", uuid)
 	}
-}
-
-func getTx(ctx context.Context, opts ...DBOption) *gorm.DB {
-	tx, ok := ctx.Value(constant.DB).(*gorm.DB)
-	if ok {
-		for _, opt := range opts {
-			tx = opt(tx)
-		}
-		return tx
-	}
-	return getDb(opts...)
-}
-
-func getDb(opts ...DBOption) *gorm.DB {
-	db := global.DB
-	for _, opt := range opts {
-		db = opt(db)
-	}
-	return db
 }

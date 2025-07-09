@@ -3,7 +3,6 @@ package repo
 import (
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/global"
-	"context"
 
 	"gorm.io/gorm"
 )
@@ -11,7 +10,7 @@ import (
 type IWecomRepo interface {
 	List(opts ...DBOption) ([]model.WecomConfig, error)
 	Get(opts ...DBOption) (model.WecomConfig, error)
-	Update(ctx context.Context, conf *model.WecomConfig) error
+	Update(conf *model.WecomConfig) error
 	WithType(typ string) DBOption
 }
 
@@ -48,8 +47,10 @@ func (r *WecomRepo) Get(opts ...DBOption) (model.WecomConfig, error) {
 	return config, nil
 }
 
-func (r *WecomRepo) Update(ctx context.Context, conf *model.WecomConfig) error {
-	return getTx(ctx).Updates(&conf).Error
+func (r *WecomRepo) Update(conf *model.WecomConfig) error {
+	return global.DB.Model(&model.WecomConfig{}).
+		Where("uuid = ?", conf.UUID).
+		Updates(&conf).Error
 }
 
 func (r *WecomRepo) WithType(typ string) DBOption {
