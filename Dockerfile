@@ -39,7 +39,9 @@ RUN go mod download -x && go build -ldflags="-s -w" -o /opt/evobot/evobot ./main
 # 第三阶段：构建最终产物
 FROM alpine:latest AS final
 
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash tzdata \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone
 
 WORKDIR /opt/evobot
 
@@ -49,6 +51,8 @@ COPY --from=go-build /opt/evobot/cmd/conf/config-example.yaml ./config.yaml
 
 # 可选：再拷贝一次前端资源（如果运行时也要 serve 静态文件）
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+ENV TZ=Asia/Shanghai
 
 EXPOSE 24916
 
