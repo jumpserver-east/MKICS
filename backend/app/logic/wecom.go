@@ -771,8 +771,15 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 	if err != nil {
 		return
 	}
-
-	if serviceStateTransOptions.ServiceState != wecomclient.SessionStatusInProgress {
+	var options wecomclient.ServiceStateGetOptions
+	options.OpenKFID = serviceStateTransOptions.OpenKFID
+	options.ExternalUserID = serviceStateTransOptions.ExternalUserID
+	serviceStateInfo, err := u.wecomkf.ServiceStateGet(options)
+	if err != nil {
+		global.ZAPLOG.Error(serviceStateInfo.Error(), zap.Error(err))
+		return
+	}
+	if serviceStateInfo.ServiceState != wecomclient.SessionStatusInProgress {
 		serviceStateTransOptions.ServiceState = wecomclient.SessionStatusInProgress
 		Info, err := u.wecomkf.ServiceStateTrans(serviceStateTransOptions)
 		if err != nil {
@@ -833,12 +840,20 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 					continue
 				}
 				if remainingTTL == -2 {
-					if serviceStateTransOptions.ServiceState != wecomclient.SessionStatusEndedOrNotStarted {
+					var options wecomclient.ServiceStateGetOptions
+					options.OpenKFID = serviceStateTransOptions.OpenKFID
+					options.ExternalUserID = serviceStateTransOptions.ExternalUserID
+					serviceStateInfo, err := u.wecomkf.ServiceStateGet(options)
+					if err != nil {
+						global.ZAPLOG.Error(serviceStateInfo.Error(), zap.Error(err))
+						return
+					}
+					if serviceStateInfo.ServiceState != wecomclient.SessionStatusEndedOrNotStarted {
 						serviceStateTransOptions.ServiceState = wecomclient.SessionStatusEndedOrNotStarted
 						serviceStateRespInfo, err := u.wecomkf.ServiceStateTrans(serviceStateTransOptions)
 						if err != nil {
 							global.ZAPLOG.Error(serviceStateRespInfo.Error(), zap.Error(err))
-							return
+							continue
 						}
 						global.ZAPLOG.Debug("会话超时，已变更状态")
 						kFInfo, err := kFRepo.Get(kFRepo.WithKFID(serviceStateTransOptions.OpenKFID))
