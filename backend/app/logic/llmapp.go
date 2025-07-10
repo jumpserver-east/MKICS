@@ -5,6 +5,7 @@ import (
 	"EvoBot/backend/app/dto/response"
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/global"
+	"EvoBot/backend/i18n"
 	"EvoBot/backend/utils/llmapp"
 
 	"go.uber.org/zap"
@@ -34,15 +35,8 @@ func (u *LLMAppLogic) ChatMessage(khid, uuid, message string) (string, error) {
 	var client llmapp.LLMAppClient
 	khinfo, err := kHRepo.Get(kHRepo.WithKHID(khid))
 	if err != nil {
-		global.ZAPLOG.Error("数据库没有找到该客户信息", zap.Error(err))
-		newKH := model.KH{
-			KHID: khid,
-		}
-		if err := kHRepo.Create(newKH); err != nil {
-			return "", err
-		}
-		khinfo = newKH
-		global.ZAPLOG.Info("录入客户信息:", zap.String("KHID", khid))
+		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "kHRepo.Get"), zap.Error(err))
+		return "", err
 	}
 
 	var targetChatID *string

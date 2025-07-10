@@ -13,6 +13,7 @@ type IKHRepo interface {
 	Get(opts ...DBOption) (model.KH, error)
 	WithKHID(khid string) DBOption
 	Create(kh model.KH) error
+	FirstOrCreatebyKHID(kh model.KH) error
 	UpdatebyID(kh model.KH) error
 	UpdatebyKHID(kh model.KH) error
 
@@ -45,6 +46,10 @@ func (r *KHRepo) WithKHID(khid string) DBOption {
 
 func (r *KHRepo) Create(kh model.KH) error {
 	return global.DB.Create(&kh).Error
+}
+
+func (r *KHRepo) FirstOrCreatebyKHID(kh model.KH) error {
+	return global.DB.Where("khid = ?", kh.KHID).FirstOrCreate(&kh).Error
 }
 
 func (r *KHRepo) UpdatebyID(kh model.KH) error {
