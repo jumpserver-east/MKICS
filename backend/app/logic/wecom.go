@@ -684,6 +684,9 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 }
 
 func (u *WecomLogic) handleInProgress(textMessage wecomclient.Text) (err error) {
+	if textMessage.Origin != wecomclient.MessageTypeCustomer {
+		return
+	}
 	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(textMessage.OpenKFID))
 	if err != nil {
 		return
