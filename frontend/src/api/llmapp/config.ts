@@ -20,5 +20,5 @@ export const updateConfigApi = (params: IConfig) => {
 }
 
 export const deleteConfigApi = (uuid: string) => {
-    return http.delete(`${Api.staff}/${uuid}`)
+    return http.delete(`${Api.llmappconfig}/${uuid}`)
 }
