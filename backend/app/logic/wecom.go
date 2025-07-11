@@ -738,6 +738,10 @@ func (u *WecomLogic) handleSessionStatusChangeEvent(sessionStatusChangeEvent wec
 		serviceStateTransOptions.OpenKFID = sessionStatusChangeEvent.OpenKFID
 		serviceStateTransOptions.ExternalUserID = sessionStatusChangeEvent.ExternalUserID
 		serviceStateTransOptions.ServicerUserID = sessionStatusChangeEvent.Event.NewReceptionistUserID
+		staffweightkey := constant.KeyStaffWeightPrefix + sessionStatusChangeEvent.Event.OldReceptionistUserID
+		if err := global.RDS.Incr(context.Background(), staffweightkey).Err(); err != nil {
+			global.ZAPLOG.Error("Incr", zap.Error(err))
+		}
 		return u.handleServiceStateTransInProgress(serviceStateTransOptions)
 	case wecomclient.WecomEventChangeTypeEndSession:
 		if err := u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
@@ -867,6 +871,12 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 							global.ZAPLOG.Error("SendTextMsgOnEvent", zap.Error(err))
 						}
 					}
+					kHInfo, err := kHRepo.Get(kHRepo.WithKHID(serviceStateTransOptions.ExternalUserID))
+					if err != nil {
+						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "kHRepo.Get"), zap.Error(err))
+						return
+					}
+					staffweightkey := constant.KeyStaffWeightPrefix + kHInfo.StaffID
 					if err := global.RDS.Incr(ctx, staffweightkey).Err(); err != nil {
 						global.ZAPLOG.Error("Incr", zap.Error(err))
 					}
@@ -888,10 +898,8 @@ func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo 
 	if kFInfo.ReceivePriority == 1 {
 		kHInfo, err := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
 		if err != nil {
-			if err := kHRepo.Create(model.KH{KHID: textMessage.ExternalUserID}); err != nil {
-				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "Create"), zap.Error(err))
-				return err
-			}
+			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "Create"), zap.Error(err))
+			return err
 		}
 		if kHInfo.StaffID != "" {
 			for _, staffInfo := range kFInfo.Staffs {
