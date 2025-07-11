@@ -652,29 +652,80 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 				return
 			}
-			return
 		case err = <-errorChan:
 			sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
 			if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
 				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ChatMessage"), zap.Error(err))
 				return err
 			}
-			return
 		}
 	case fullContent := <-resultChan:
 		sendTextMsgOptions.Text.Content = fullContent
 		if err = u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
 			return
 		}
-		return
 	case err = <-errorChan:
 		sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
 		if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
 			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
 			return err
 		}
+	}
+	chatkey := constant.KeyWecomBotStaffPrefix + kFInfo.BotID + ":" + textMessage.ExternalUserID
+	remainingTTL, err := global.RDS.TTL(context.Background(), chatkey).Result()
+	if err != nil {
+		global.ZAPLOG.Debug("TTL check failed", zap.Error(err))
+	}
+	if remainingTTL >= 0 {
+		global.ZAPLOG.Debug("刷新会话超时时间")
+		if err = global.RDS.Set(context.Background(), chatkey, 1, time.Duration(kFInfo.ChatTimeout)*time.Second).Err(); err != nil {
+			global.ZAPLOG.Error("redis set error", zap.Error(err))
+			return
+		}
 		return
 	}
+	global.ZAPLOG.Debug("初始化会话")
+	if err = global.RDS.Set(context.Background(), chatkey, 1, time.Duration(kFInfo.ChatTimeout)*time.Second).Err(); err != nil {
+		global.ZAPLOG.Error("redis set error", zap.Error(err))
+		return
+	}
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				remainingTTL, err := global.RDS.TTL(context.Background(), chatkey).Result()
+				if err != nil {
+					global.ZAPLOG.Debug("TTL check failed", zap.Error(err))
+					continue
+				}
+				if remainingTTL == -2 {
+					var serviceStateTransOptions wecomclient.ServiceStateTransOptions
+					serviceStateTransOptions.OpenKFID = textMessage.OpenKFID
+					serviceStateTransOptions.ExternalUserID = textMessage.ExternalUserID
+					serviceStateTransOptions.ServiceState = wecomclient.SessionStatusEndedOrNotStarted
+					serviceStateRespInfo, err := u.wecomkf.ServiceStateTrans(serviceStateTransOptions)
+					if err != nil {
+						global.ZAPLOG.Error(serviceStateRespInfo.Error(), zap.Error(err))
+						continue
+					}
+					if err := kHRepo.ClearChatIDsByKHIDAndBotID(textMessage.ExternalUserID, kFInfo.BotID); err != nil {
+						global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ClearChatIDsByKHIDAndBotID"), zap.Error(err))
+						return
+					}
+					return
+				}
+				if remainingTTL >= 0 {
+					continue
+				}
+				return
+			case <-context.Background().Done():
+				return
+			}
+		}
+	}()
+	return
 }
 
 func (u *WecomLogic) handleInProgress(textMessage wecomclient.Text) (err error) {

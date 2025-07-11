@@ -18,6 +18,7 @@ type IKHRepo interface {
 	UpdatebyKHID(kh model.KH) error
 
 	DeleteChatListWithBotID(botid string) error
+	ClearChatIDsByKHIDAndBotID(khid string, botid string) error
 	CreateChatList(chatlist model.ChatList) error
 }
 
@@ -66,6 +67,15 @@ func (r *KHRepo) UpdatebyKHID(kh model.KH) error {
 
 func (r *KHRepo) DeleteChatListWithBotID(botid string) error {
 	return global.DB.Where("botid = ?", botid).Delete(&model.ChatList{}).Error
+}
+
+func (r *KHRepo) ClearChatIDsByKHIDAndBotID(khid string, botid string) error {
+	var kh model.KH
+	if err := global.DB.Where("khid = ?", khid).First(&kh).Error; err != nil {
+		return err
+	}
+	result := global.DB.Where("kh_id = ? AND botid = ?", kh.ID, botid).Delete(&model.ChatList{})
+	return result.Error
 }
 
 func (r *KHRepo) CreateChatList(chatlist model.ChatList) error {
