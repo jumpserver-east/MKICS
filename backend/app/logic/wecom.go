@@ -638,39 +638,30 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 			resultChan <- MarkdownToText(fullContent)
 		}
 	}()
-	select {
-	case <-ctx.Done():
-		sendTextMsgOptions.Text.Content = kFInfo.BotTimeoutMsg
-		err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
-		if err != nil {
-			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
-		}
+	go func(ctx context.Context, resultChan chan string, errorChan chan error) {
 		select {
+		case <-ctx.Done():
+			sendTextMsgOptions.Text.Content = kFInfo.BotTimeoutMsg
+			err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+			if err != nil {
+				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
+			}
+			select {
+			case fullContent := <-resultChan:
+				sendTextMsgOptions.Text.Content = fullContent
+			case err = <-errorChan:
+				sendTextMsgOptions.Text.Content = err.Error()
+			}
 		case fullContent := <-resultChan:
 			sendTextMsgOptions.Text.Content = fullContent
-			if err = u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
-				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
-				return
-			}
 		case err = <-errorChan:
-			sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
-			if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
-				global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "ChatMessage"), zap.Error(err))
-				return err
-			}
+			sendTextMsgOptions.Text.Content = err.Error()
 		}
-	case fullContent := <-resultChan:
-		sendTextMsgOptions.Text.Content = fullContent
-		if err = u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
-			return
-		}
-	case err = <-errorChan:
-		sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
 		if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
 			global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "SendTextMsg"), zap.Error(err))
-			return err
+			return
 		}
-	}
+	}(ctx, resultChan, errorChan)
 	chatkey := constant.KeyWecomBotStaffPrefix + kFInfo.BotID + ":" + textMessage.ExternalUserID
 	remainingTTL, err := global.RDS.TTL(context.Background(), chatkey).Result()
 	if err != nil {
@@ -690,7 +681,7 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 		return
 	}
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(time.Duration(kFInfo.ChatTimeout) * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
@@ -716,7 +707,9 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 					}
 					return
 				}
-				if remainingTTL >= 0 {
+				if remainingTTL > 0 {
+					ticker.Stop()
+					ticker = time.NewTicker(remainingTTL)
 					continue
 				}
 				return
@@ -884,7 +877,7 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 
 	global.ZAPLOG.Debug("handleChatTimeoutTask")
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(time.Duration(kFInfo.ChatTimeout) * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
@@ -934,6 +927,8 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 					return
 				}
 				if remainingTTL >= 0 {
+					ticker.Stop()
+					ticker = time.NewTicker(remainingTTL)
 					continue
 				}
 				return
