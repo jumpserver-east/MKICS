@@ -31,11 +31,19 @@
 
       <el-form-item label="工作时间：" prop="work_times">
         <el-button type="primary" @click="addWorkTime">添加工作时间</el-button>
-        <div v-for="(time, index) in formData.work_times" :key="index" class="work-time">
-          <el-input v-model="time.start_time" placeholder="开始时间"></el-input>
-          <el-input v-model="time.end_time" placeholder="结束时间"></el-input>
-          <el-button @click="removeWorkTime(index)" type="danger">删除</el-button>
-        </div>
+          <div v-for="(time, index) in formData.work_times" :key="index" class="work-time">
+            <el-time-picker
+              v-model="tempTimeRanges[index]"
+              is-range
+              range-separator="至"
+              start-placeholder="开始时间"
+              end-placeholder="结束时间"
+              format="HH:mm:ss"
+              value-format="HH:mm:ss"
+              @change="(val) => handleTimeChange(index, val)"
+            ></el-time-picker>
+            <el-button @click="removeWorkTime(index)" type="danger">删除</el-button>
+          </div>
       </el-form-item>
     </el-form>
   </o-form-wrap>
@@ -67,8 +75,29 @@ const formData = reactive<IPolicy>({
   max_count: 100,
   repeat: 1,
   week: '',
-  work_times: [{ start_time: '', end_time: '' }]
+  work_times: [{ start_time: '08:00:00', end_time: '18:00:00' }]
 })
+
+const tempTimeRanges = ref<[string, string][]>([
+  ['08:00:00', '18:00:00'] 
+]);
+
+const handleTimeChange = (index: number, val: [string, string] | null) => {
+  if (Array.isArray(formData.work_times)) {
+    if (val) {
+      formData.work_times[index].start_time = val[0];
+      formData.work_times[index].end_time = val[1];
+      tempTimeRanges.value[index] = val;
+    }
+  }
+};
+
+const removeWorkTime = (index: number) => {
+  if (Array.isArray(formData.work_times)) {
+    formData.work_times.splice(index, 1);
+    tempTimeRanges.value.splice(index, 1);
+  }
+};
 
 interface RepeatOption {
   value: number
@@ -102,6 +131,9 @@ const policyInfo = async () => {
       .map((day, index) => (day === '1' ? String(index) : null))
       .filter(Boolean) as string[]  // 将勾选的工作日的索引添加到 selectedDays 中
   }
+  if (Array.isArray(formData.work_times)) {
+    tempTimeRanges.value = formData.work_times.map(t => [t.start_time, t.end_time] as [string, string]);
+  }
 }
 
 const onConfirm = (loading: TLoading) => {
@@ -130,17 +162,17 @@ const addWorkTime = () => {
   }
 }
 
-const removeWorkTime = async (index: number) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该工作时间吗？', '删除确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    formData.work_times?.splice(index, 1)
-    ElMessage.success('工作时间已删除')
-  } catch { }
-}
+// const removeWorkTime = async (index: number) => {
+//   try {
+//     await ElMessageBox.confirm('确定要删除该工作时间吗？', '删除确认', {
+//       confirmButtonText: '确定',
+//       cancelButtonText: '取消',
+//       type: 'warning'
+//     })
+//     formData.work_times?.splice(index, 1)
+//     ElMessage.success('工作时间已删除')
+//   } catch { }
+// }
 
 // 当用户勾选工作日时，更新week字段
 const selectedDays = ref<string[]>([])  // 用于保存勾选的工作日
