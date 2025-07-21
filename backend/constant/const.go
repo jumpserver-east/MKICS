@@ -12,8 +12,8 @@ const (
 )
 
 const (
-	KFStatusRobotToHuman int = iota + 1 // 1 机器人可转人工
-	KFStatusOnlyRobot                   // 2 仅机器人
+	KFStatusRobotToHuman int = iota + 1 // 1 大语言模型应用可转人工
+	KFStatusOnlyRobot                   // 2 仅大语言模型应用
 	KFStatusOnlyHuman                   // 3 仅人工
 )
 

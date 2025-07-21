@@ -48,7 +48,7 @@ func (u *LLMAppLogic) ChatMessage(khid, uuid, message string) (string, error) {
 	}
 
 	if targetChatID == nil {
-		global.ZAPLOG.Info("该客户没有和该机器人的聊天ID", zap.String("KHID", khid), zap.String("BotID", uuid))
+		global.ZAPLOG.Info("该客户没有和该大语言模型应用的聊天ID", zap.String("KHID", khid), zap.String("BotID", uuid))
 
 		client, err = u.getClient(uuid)
 		if err != nil {

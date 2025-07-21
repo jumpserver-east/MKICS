@@ -8,7 +8,7 @@ export enum Api {
   /** 工作策略列表 */
   policy = '/policy',
 
-  /** 坐席人员列表 */
+  /** 接待人员列表 */
   staff = '/staff',
 
   /** 客服应用列表 */

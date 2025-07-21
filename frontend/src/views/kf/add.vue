@@ -13,14 +13,14 @@
                 <el-input v-model="formData.kfplatform" placeholder="请输入客服平台" />
             </el-form-item>
 
-            <el-form-item label="机器人 ID：" prop="botid">
-                <el-input v-model="formData.botid" placeholder="请输入机器人 ID" />
+            <el-form-item label="大语言模型应用 ID：" prop="botid">
+                <el-input v-model="formData.botid" placeholder="请输入大语言模型应用 ID" />
             </el-form-item>
 
             <el-form-item label="接待方式：" prop="status">
                 <el-radio-group v-model="formData.status">
-                    <el-radio :label="1">机器人可转人工</el-radio>
-                    <el-radio :label="2">仅机器人</el-radio>
+                    <el-radio :label="1">大语言模型应用可转人工</el-radio>
+                    <el-radio :label="2">仅大语言模型应用</el-radio>
                     <el-radio :label="3">仅人工</el-radio>
                 </el-radio-group>
             </el-form-item>
@@ -45,16 +45,16 @@
                 <el-input-number v-model="formData.chat_timeout" placeholder="请输入会话超时时间" />
             </el-form-item>
 
-            <el-form-item label="机器人超时（秒）：" prop="bot_timeout">
-                <el-input-number v-model="formData.bot_timeout" placeholder="请输入机器人超时时间" />
+            <el-form-item label="大语言模型应用超时（秒）：" prop="bot_timeout">
+                <el-input-number v-model="formData.bot_timeout" placeholder="请输入大语言模型应用超时时间" />
             </el-form-item>
 
-            <el-form-item label="机器人超时消息：" prop="bot_timeout_msg">
-                <el-input v-model="formData.bot_timeout_msg" placeholder="请输入机器人超时消息" />
+            <el-form-item label="大语言模型应用超时消息：" prop="bot_timeout_msg">
+                <el-input v-model="formData.bot_timeout_msg" placeholder="请输入大语言模型应用超时消息" />
             </el-form-item>
 
-            <el-form-item label="机器人欢迎消息（菜单）：" prop="bot_welcome_msg">
-                <el-input type="textarea" :rows="9" v-model="formData.bot_welcome_msg" placeholder="请输入机器人欢迎消息" />
+            <el-form-item label="大语言模型应用欢迎消息（菜单）：" prop="bot_welcome_msg">
+                <el-input type="textarea" :rows="9" v-model="formData.bot_welcome_msg" placeholder="请输入大语言模型应用欢迎消息" />
             </el-form-item>
 
             <el-form-item label="接待人员欢迎消息：" prop="staff_welcome_msg">

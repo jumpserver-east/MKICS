@@ -52,12 +52,12 @@ const tableConfig: ITableConfig = {
     { prop: 'kfname', label: '客服名称' },
     // { prop: 'kfid', label: '客服 ID' },
     { prop: 'kfplatform', label: '客服平台' },
-    // { prop: 'botid', label: '机器人 ID' },
+    // { prop: 'botid', label: '大语言模型应用 ID' },
     { prop: 'status', label: '接待方式', slot: 'status' },
     { prop: 'receive_priority', label: '优先上一位接待人员', slot: 'receive_priority' },
     { prop: 'receive_rule', label: '接待规则', slot: 'receive_rule' },
     { prop: 'chat_timeout', label: '会话超时（秒）' },
-    { prop: 'bot_timeout', label: '机器人超时（秒）' },
+    { prop: 'bot_timeout', label: '大语言模型应用超时（秒）' },
     { prop: 'transfer_keywords', label: '转接关键词', slot: 'transfer_keywords' },
     { prop: 'staffs', label: '接待人员列表', slot: 'staffs' },
   ],
@@ -93,9 +93,9 @@ const tableRef = ref<TableInstance>();
 const formatStatus = (status: number) => {
   switch (status) {
     case 1:
-      return '机器人可转人工';
+      return '大语言模型应用可转人工';
     case 2:
-      return '仅机器人';
+      return '仅大语言模型应用';
     case 3:
       return '仅人工';
     default:

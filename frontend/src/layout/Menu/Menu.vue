@@ -42,7 +42,7 @@ const defaultMenu = [
   },
   {
     id: 'staff',
-    name: '坐席人员管理',
+    name: '接待人员管理',
     icon: 'Management',
     path: '/staff',
   },
@@ -54,7 +54,7 @@ const defaultMenu = [
   },
   {
     id: 'llmapp',
-    name: '知识库管理',
+    name: '大语言模型应用管理',
     icon: 'Management',
     path: '/llmapp',
   },
