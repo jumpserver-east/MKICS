@@ -1,5 +1,5 @@
 <template>
-    <o-form-wrap title="llmapp" @confirm="onConfirm">
+    <o-form-wrap title="大语言模型应用" @confirm="onConfirm">
         <el-form ref="staffForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
             <!-- 人员名称 -->
             <el-form-item label="名称：" prop="config_name">
