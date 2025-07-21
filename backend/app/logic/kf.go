@@ -6,8 +6,6 @@ import (
 	"EvoBot/backend/app/dto/response"
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/global"
-
-	"go.uber.org/zap"
 )
 
 type KFLogic struct {
@@ -52,12 +50,12 @@ func (u *KFLogic) KFAdd(req request.KF) error {
 	}
 	staffs, err := staffRepo.List(commonRepo.WithUUIDsIn(req.StaffList))
 	if err != nil {
-		global.ZAPLOG.Error("Find Staffs", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return err
 	}
 	kf.Staffs = staffs
 	if err := kFRepo.Create(kf); err != nil {
-		global.ZAPLOG.Error("Create KF", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return err
 	}
 	tx.Commit()

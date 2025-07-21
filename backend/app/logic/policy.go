@@ -6,8 +6,6 @@ import (
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/global"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 type PolicyLogic struct {
@@ -41,11 +39,11 @@ func (u *PolicyLogic) PolicyAdd(req dto.Policy) error {
 	}
 	for _, worktime := range req.WorkTimes {
 		if _, err := time.Parse("15:04:05", worktime.StartTime); err != nil {
-			global.ZAPLOG.Error("time.Parse StartTime", zap.Error(err))
+			global.ZAPLOG.Error(err.Error())
 			return err
 		}
 		if _, err := time.Parse("15:04:05", worktime.EndTime); err != nil {
-			global.ZAPLOG.Error("time.Parse EndTime", zap.Error(err))
+			global.ZAPLOG.Error(err.Error())
 			return err
 		}
 		workTime := model.WorkTime{
@@ -55,7 +53,7 @@ func (u *PolicyLogic) PolicyAdd(req dto.Policy) error {
 		policy.WorkTimes = append(policy.WorkTimes, workTime)
 	}
 	if err := policyRepo.Create(policy); err != nil {
-		global.ZAPLOG.Error("policyRepo createPolicy failed", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return err
 	}
 	tx.Commit()

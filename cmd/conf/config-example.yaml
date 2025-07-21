@@ -32,7 +32,6 @@ auth:
   jwt_expired: 7200s
 
 log:
-  lang: "zh" # zh/en
   model: "dev"
   level: "debug"
   max_size: 200

@@ -43,7 +43,8 @@ func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
 			options.Text.Content = content
 			info, err := k.KFClient.SendMsg(options)
 			if err != nil {
-				global.ZAPLOG.Error(info.Error(), zap.Error(err))
+				global.ZAPLOG.Error(err.Error())
+				global.ZAPLOG.Error(info.Error())
 				return err
 			}
 			time.Sleep(1 * time.Second)
@@ -65,7 +66,8 @@ func (k *WecomKF) SendTextMsg(options SendTextMsgOptions) (err error) {
 		options.Text.Content = content
 		info, err := k.KFClient.SendMsg(options)
 		if err != nil {
-			global.ZAPLOG.Error(info.Error(), zap.Error(err))
+			global.ZAPLOG.Error(err.Error())
+			global.ZAPLOG.Error(info.Error())
 			return err
 		}
 		time.Sleep(1 * time.Second)
@@ -78,7 +80,8 @@ func (k *WecomKF) SendMenuMsg(options SendMenuMsgOptions) error {
 	global.ZAPLOG.Debug("", zap.Any("", options))
 	info, err := k.KFClient.SendMsg(options)
 	if err != nil {
-		global.ZAPLOG.Error(info.Error(), zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
+		global.ZAPLOG.Error(info.Error())
 		return err
 	}
 	return nil

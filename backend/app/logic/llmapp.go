@@ -5,7 +5,6 @@ import (
 	"EvoBot/backend/app/dto/response"
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/global"
-	"EvoBot/backend/i18n"
 	"EvoBot/backend/utils/llmapp"
 
 	"go.uber.org/zap"
@@ -35,7 +34,7 @@ func (u *LLMAppLogic) ChatMessage(khid, uuid, message string) (string, error) {
 	var client llmapp.LLMAppClient
 	khinfo, err := kHRepo.Get(kHRepo.WithKHID(khid))
 	if err != nil {
-		global.ZAPLOG.Error(i18n.Tf("wecom.failed_action", "kHRepo.Get"), zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return "", err
 	}
 
@@ -53,7 +52,7 @@ func (u *LLMAppLogic) ChatMessage(khid, uuid, message string) (string, error) {
 
 		client, err = u.getClient(uuid)
 		if err != nil {
-			global.ZAPLOG.Error("获取 LLMApp 客户端失败", zap.Error(err))
+			global.ZAPLOG.Error(err.Error())
 			return "", err
 		}
 
@@ -83,7 +82,7 @@ func (u *LLMAppLogic) ChatMessage(khid, uuid, message string) (string, error) {
 	} else {
 		client, err = u.getClient(uuid)
 		if err != nil {
-			global.ZAPLOG.Error("获取 LLMApp 客户端失败", zap.Error(err))
+			global.ZAPLOG.Error(err.Error())
 			return "", err
 		}
 	}
@@ -115,7 +114,7 @@ func (u *LLMAppLogic) getClient(uuid string) (llmapp.LLMAppClient, error) {
 
 	client, err := llmapp.NewLLMAppClient(conf.LLMAppType, varMap)
 	if err != nil {
-		global.ZAPLOG.Error("创建 LLMApp 客户端失败", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return nil, err
 	}
 
@@ -180,7 +179,7 @@ func (u *LLMAppLogic) ConfigUpdate(uuid string, req dto.LLMAppConfig) error {
 	varMap["api_key"] = req.ApiKey
 	client, err := llmapp.NewLLMAppClient(req.LLMAppType, varMap)
 	if err != nil {
-		global.ZAPLOG.Error("更新 LLMApp 客户端失败", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return err
 	}
 	u.llmAppClients[uuid] = client
@@ -206,7 +205,7 @@ func (u *LLMAppLogic) ConfigList() ([]response.LLMAppConfig, error) {
 	configs, err := llmappRepo.List()
 	var resp []response.LLMAppConfig
 	if err != nil {
-		global.ZAPLOG.Error("failed to get LLMApp config", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return resp, err
 	}
 	for _, config := range configs {

@@ -74,13 +74,13 @@ func Init() {
 	}
 
 	if err != nil {
-		global.ZAPLOG.Error("failed to connect database, err:" + err.Error())
+		global.ZAPLOG.Error(err.Error())
 		panic(err)
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		global.ZAPLOG.Error("connect db server failed, err:" + err.Error())
+		global.ZAPLOG.Error(err.Error())
 		panic(err)
 	}
 

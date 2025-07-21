@@ -18,7 +18,7 @@ func getHighestWeightStaff(staffIDs []string) (string, int) {
 		staffweightkey := constant.KeyStaffWeightPrefix + staffid
 		staffweightvalue, err := global.RDS.Get(context.Background(), staffweightkey).Int()
 		if err != nil {
-			global.ZAPLOG.Error("获取权重失败", zap.String("staffweightkey", staffweightkey), zap.Error(err))
+			global.ZAPLOG.Error(err.Error())
 			continue
 		}
 		if staffweightvalue > maxWeightvalue {
@@ -42,11 +42,11 @@ func isStaffWorkByStaffID(staffid string) (bool, error) {
 					staffweightkey := constant.KeyStaffWeightPrefix + staffid
 					_, err := global.RDS.Get(ctx, staffweightkey).Result()
 					if err != nil {
-						global.ZAPLOG.Error("redis get error", zap.Error(err))
+						global.ZAPLOG.Error(err.Error())
 						global.ZAPLOG.Info("初始化权重缓存")
 						err = global.RDS.Set(ctx, staffweightkey, policy.MaxCount, 0).Err()
 						if err != nil {
-							global.ZAPLOG.Error("redis set error", zap.Error(err))
+							global.ZAPLOG.Error(err.Error())
 							return false, err
 						}
 					}
@@ -68,8 +68,8 @@ func isTimeInRange(startTimeStr, endTimeStr string) bool {
 	startTime, err1 := time.Parse(layout, startTimeStr)
 	endTime, err2 := time.Parse(layout, endTimeStr)
 	if err1 != nil || err2 != nil {
-		global.ZAPLOG.Error("Error parsing time:", zap.Error(err1))
-		global.ZAPLOG.Error("Error parsing time:", zap.Error(err2))
+		global.ZAPLOG.Error(err1.Error())
+		global.ZAPLOG.Error(err2.Error())
 		return false
 	}
 	now := time.Now()

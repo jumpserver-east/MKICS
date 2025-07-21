@@ -6,8 +6,6 @@ import (
 	"EvoBot/backend/app/dto/response"
 	"EvoBot/backend/app/model"
 	"EvoBot/backend/global"
-
-	"go.uber.org/zap"
 )
 
 type StaffLogic struct {
@@ -36,13 +34,13 @@ func (u *StaffLogic) StaffAdd(req request.Staff) error {
 	}
 	policies, err := policyRepo.List(commonRepo.WithUUIDsIn(req.PolicyList))
 	if err != nil {
-		global.ZAPLOG.Error("Find Policies", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		tx.Rollback()
 		return err
 	}
 	staff.Policies = policies
 	if err := staffRepo.Create(staff); err != nil {
-		global.ZAPLOG.Error("Create Staff", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		tx.Rollback()
 		return err
 	}
@@ -101,7 +99,7 @@ func (u *StaffLogic) StaffGet(uuid string) (response.Staff, error) {
 	var resp response.Staff
 	staff, err := staffRepo.Get(commonRepo.WithByUUID(uuid))
 	if err != nil {
-		global.ZAPLOG.Error("faile to get staff withbyid", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return resp, err
 	}
 	var policies []response.Policy

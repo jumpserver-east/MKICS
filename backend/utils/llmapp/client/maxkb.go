@@ -8,7 +8,6 @@ import (
 	mkresp "github.com/Ewall555/MaxKB-golang-sdk/api/response" // 返回参数
 	mkconfig "github.com/Ewall555/MaxKB-golang-sdk/config"     // 配置参数
 	mk "github.com/Ewall555/MaxKB-golang-sdk/maxkb"            // 引入包
-	"go.uber.org/zap"
 )
 
 type MaxKB struct {
@@ -42,6 +41,7 @@ func (c *MaxKB) ChatMessage(message string, chatid *string) (string, error) {
 	}
 	resp, err := c.ApplicationChat.Chat_messageByChat_id(req, chatid, nil)
 	if err != nil {
+		global.ZAPLOG.Error(err.Error())
 		return "", err
 	}
 	return resp.Content, nil
@@ -50,12 +50,12 @@ func (c *MaxKB) ChatMessage(message string, chatid *string) (string, error) {
 func (c *MaxKB) ChatOpen() (*string, error) {
 	profileresp, err := c.ApplicationChat.Profile()
 	if err != nil {
-		global.ZAPLOG.Error("get profile error", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return nil, err
 	}
 	chatid, err := c.ApplicationChat.ChatOpenByApplication_id(profileresp.ID)
 	if err != nil {
-		global.ZAPLOG.Error("open chat error", zap.Error(err))
+		global.ZAPLOG.Error(err.Error())
 		return nil, err
 	}
 	return chatid, err
