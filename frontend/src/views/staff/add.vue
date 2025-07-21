@@ -13,7 +13,7 @@
 
             <!-- 角色 -->
             <el-form-item label="角色：" prop="role">
-                <el-select v-model="role" placeholder="请选择角色">
+                <el-select v-model="formData.role" placeholder="请选择角色">
                     <el-option v-for="item in roleoptions" :key="item.value" :label="item.label" :value="item.value" />
                 </el-select>
             </el-form-item>
@@ -41,8 +41,6 @@ import type { IStaff } from '@/api/staff/model';
 
 import type { TLoading } from '@/types';
 import type { FormInstance, FormRules } from 'element-plus';
-
-const role = ref('')
 
 const roleoptions = [
   {
