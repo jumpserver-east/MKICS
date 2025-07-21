@@ -49,10 +49,8 @@ import type { IStaff } from '@/api/staff/model';
 const tableConfig: ITableConfig = {
   api: `${Api.kf}`, // 使用 kf 的接口路径
   headers: [
-    { prop: 'kfname', label: '客服名称' },
-    // { prop: 'kfid', label: '客服 ID' },
+    { prop: 'kfname', label: '客服应用名称' },
     { prop: 'kfplatform', label: '客服平台' },
-    // { prop: 'botid', label: '大语言模型应用 ID' },
     { prop: 'status', label: '接待方式', slot: 'status' },
     { prop: 'receive_priority', label: '优先上一位接待人员', slot: 'receive_priority' },
     { prop: 'receive_rule', label: '接待规则', slot: 'receive_rule' },

@@ -12,14 +12,6 @@
     <span class="ml-3"> Evobot 管理系统 </span>
   </div>
   <div class="flex justify-end">
-    <el-link
-      class="c-white mr-5"
-      href="https://github.com/ewall555"
-      target="_blank"
-      :underline="false"
-    >
-      Github
-    </el-link>
     <el-dropdown>
       <div class="el-dropdown-link flex-center">
         <el-avatar :src="user.avatar || avatar" />

@@ -1,8 +1,8 @@
 <template>
   <o-form-wrap title="工作策略管理" @confirm="onConfirm">
     <el-form ref="ruleForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
-      <el-form-item label="策略名称：" prop="policyname">
-        <el-input v-model="formData.policyname" placeholder="请输入策略名称" />
+      <el-form-item label="工作策略名称：" prop="policyname">
+        <el-input v-model="formData.policyname" placeholder="请输入工作策略名称" />
       </el-form-item>
 
       <el-form-item label="最大接待数量：" prop="max_count">
@@ -113,7 +113,7 @@ const repeatOptions: RepeatOption[] = [
 ]
 
 const formRules = reactive<FormRules>({
-  policyname: [{ required: true, message: '请输入策略名称', trigger: 'blur' }],
+  policyname: [{ required: true, message: '请输入工作策略名称', trigger: 'blur' }],
   max_count: [{ required: true, message: '请输入最大接待数量', trigger: 'blur' }],
   repeat: [{ required: true, message: '请选择重复策略', trigger: 'change' }],
   week: [{ required: true, message: '当重复策略为自定义时，工作日必填', trigger: 'blur' }],
@@ -161,18 +161,6 @@ const addWorkTime = () => {
     formData.work_times.push({ start_time: '', end_time: '' })
   }
 }
-
-// const removeWorkTime = async (index: number) => {
-//   try {
-//     await ElMessageBox.confirm('确定要删除该工作时间吗？', '删除确认', {
-//       confirmButtonText: '确定',
-//       cancelButtonText: '取消',
-//       type: 'warning'
-//     })
-//     formData.work_times?.splice(index, 1)
-//     ElMessage.success('工作时间已删除')
-//   } catch { }
-// }
 
 // 当用户勾选工作日时，更新week字段
 const selectedDays = ref<string[]>([])  // 用于保存勾选的工作日

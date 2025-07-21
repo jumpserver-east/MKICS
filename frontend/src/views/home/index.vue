@@ -6,7 +6,7 @@
       </div>
       <div class="pr-5 pl-10">
         <h2 class="text-5 font-bold m0">
-          你好，<span>{{ user.name }}</span>
+          你好 <span>{{ user.name }}</span>
         </h2>
         <p class="c-#787f95 pt-4 m0">登录日期：{{ currentTime }}</p>
         <p class="c-#787f95 pt-4 m0">{{ soulWord }}</p>

@@ -38,7 +38,7 @@ const tableConfig: ITableConfig = {
   headers: [
     {
       prop: 'policyname',
-      label: '策略名称'
+      label: '工作策略名称'
     },
     {
       prop: 'max_count',

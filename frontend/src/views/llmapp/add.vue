@@ -8,7 +8,7 @@
 
             <!-- 类型 -->
             <el-form-item label="类型：" prop="llmapp_type">
-                <el-input v-model="formData.llmapp_type" placeholder="请输入类型" />
+                <el-input v-model="formData.llmapp_type" placeholder="请输入类型" readonly />
             </el-form-item>
 
             <!-- base_url -->
@@ -30,8 +30,6 @@ import { ElMessage } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
 
 import { createConfigApi, getConfigApi, updateConfigApi } from '@/api/llmapp/config';
-import { getConfigListApi } from '@/api/llmapp/config';
-import type { IPolicy } from '@/api/policy/model';
 import type { IConfig } from '@/api/llmapp/model/configModel';
 
 import type { TLoading } from '@/types';
@@ -50,7 +48,7 @@ isEditing.value = !!uuid;
 const staffForm = ref<FormInstance>();
 const formData = reactive<IConfig>({
     uuid:'',
-    llmapp_type: '',
+    llmapp_type: 'MAXKB',
     config_name: '',
     api_key: '',
     base_url: '',
@@ -64,25 +62,6 @@ const formRules = reactive<FormRules>({
     base_url: [{ required: true, message: '请输入base_url', trigger: 'blur' }],
 });
 
-// 选项
-const llmappOptions = ref<IConfig[]>([]);
-
-// 获取列表
-const fetchLLMAppList = async () => {
-    try {
-        const { data } = await getConfigListApi();
-        llmappOptions.value = data.map((llmapp) => ({
-            uuid: llmapp.uuid,
-            config_name: llmapp.config_name,
-            llmapp_type: llmapp.llmapp_type,
-            api_key: llmapp.api_key,
-            base_url: llmapp.base_url,
-        }));
-    } catch (error) {
-        ElMessage.error('获取列表失败');
-    }
-};
-
 // 获取信息
 const fetchLLMAppInfo = async () => {
     try {
@@ -95,7 +74,6 @@ const fetchLLMAppInfo = async () => {
         ElMessage.error('获取人员信息失败');
     }
 };
-
 
 const onConfirm = (loading: TLoading) => {
     staffForm.value?.validate(async (valid) => {
