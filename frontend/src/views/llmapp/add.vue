@@ -1,6 +1,6 @@
 <template>
     <o-form-wrap title="大语言模型应用" @confirm="onConfirm">
-        <el-form ref="staffForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
+        <el-form ref="staffForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
             <!-- 人员名称 -->
             <el-form-item label="名称：" prop="config_name">
                 <el-input v-model="formData.config_name" placeholder="请输入名称" />

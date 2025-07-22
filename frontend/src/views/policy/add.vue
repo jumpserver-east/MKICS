@@ -1,6 +1,6 @@
 <template>
   <o-form-wrap title="工作策略管理" @confirm="onConfirm">
-    <el-form ref="ruleForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
+    <el-form ref="ruleForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
       <el-form-item label="工作策略名称：" prop="policyname">
         <el-input v-model="formData.policyname" placeholder="请输入工作策略名称" />
       </el-form-item>
