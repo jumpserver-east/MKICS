@@ -1,25 +1,25 @@
 <template>
     <o-form-wrap title="接待人员管理" @confirm="onConfirm">
-        <el-form ref="staffForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
+        <el-form ref="staffForm" class="w-200" :model="formData" :rules="formRules" label-position="right" label-width="160px">
             <!-- 人员名称 -->
-            <el-form-item label="接待人员名称：" prop="staffname">
+            <el-form-item label="接待人员名称" prop="staffname">
                 <el-input v-model="formData.staffname" placeholder="请输入接待人员名称" />
             </el-form-item>
 
             <!-- 接待人员 ID -->
-            <el-form-item label="接待人员 ID：" prop="staffid">
+            <el-form-item label="接待人员 ID" prop="staffid">
                 <el-input v-model="formData.staffid" placeholder="请输入接待人员 ID" />
             </el-form-item>
 
             <!-- 角色 -->
-            <el-form-item label="角色：" prop="role">
+            <el-form-item label="角色" prop="role">
                 <el-select v-model="formData.role" placeholder="请选择角色">
                     <el-option v-for="item in roleoptions" :key="item.value" :label="item.label" :value="item.value" />
                 </el-select>
             </el-form-item>
 
             <!-- 策略列表 -->
-            <el-form-item label="工作策略列表：" prop="policy_list">
+            <el-form-item label="工作策略列表" prop="policy_list">
                 <el-select v-model="formData.policy_list" multiple placeholder="请选择工作策略" :options="policyOptions">
                     <el-option v-for="policy in policyOptions" :key="policy.uuid" :label="policy.policyname"
                         :value="policy.uuid" />
