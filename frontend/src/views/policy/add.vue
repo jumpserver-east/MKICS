@@ -1,22 +1,22 @@
 <template>
   <o-form-wrap title="工作策略管理" @confirm="onConfirm">
-    <el-form ref="ruleForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
-      <el-form-item label="工作策略名称：" prop="policyname">
+    <el-form ref="ruleForm" class="w-200" :model="formData" :rules="formRules" label-position="right" label-width="160px">
+      <el-form-item label="工作策略名称" prop="policyname">
         <el-input v-model="formData.policyname" placeholder="请输入工作策略名称" />
       </el-form-item>
 
-      <el-form-item label="最大接待数量：" prop="max_count">
+      <el-form-item label="最大接待数量" prop="max_count">
         <el-input-number v-model="formData.max_count" placeholder="请输入最大接待数量" />
       </el-form-item>
 
-      <el-form-item label="重复策略：" prop="repeat">
+      <el-form-item label="重复策略" prop="repeat">
         <el-select v-model="formData.repeat" placeholder="请选择重复策略">
           <el-option v-for="option in repeatOptions" :key="option.value" :value="option.value" :label="option.label" />
         </el-select>
       </el-form-item>
 
       <!-- 只有当 repeat === 1 时，显示 week 字段 -->
-      <el-form-item v-if="formData.repeat === 1" label="工作日：" prop="week">
+      <el-form-item v-if="formData.repeat === 1" label="工作日" prop="week">
         <!-- 使用CheckboxGroup显示工作日选择框 -->
         <el-checkbox-group v-model="selectedDays" @change="updateWeek">
           <el-checkbox label="0" name="day">周日</el-checkbox>
@@ -29,7 +29,7 @@
         </el-checkbox-group>
       </el-form-item>
 
-      <el-form-item label="工作时间：" prop="work_times">
+      <el-form-item label="工作时间" prop="work_times">
         <el-button type="primary" @click="addWorkTime">添加工作时间</el-button>
           <div v-for="(time, index) in formData.work_times" :key="index" class="work-time">
             <el-time-picker

@@ -1,23 +1,23 @@
 <template>
     <o-form-wrap title="大语言模型应用" @confirm="onConfirm">
-        <el-form ref="staffForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
+        <el-form ref="staffForm" class="w-200" :model="formData" :rules="formRules" label-position="right" label-width="160px">
             <!-- 人员名称 -->
-            <el-form-item label="名称：" prop="config_name">
+            <el-form-item label="名称" prop="config_name">
                 <el-input v-model="formData.config_name" placeholder="请输入名称" />
             </el-form-item>
 
             <!-- 类型 -->
-            <el-form-item label="类型：" prop="llmapp_type">
+            <el-form-item label="类型" prop="llmapp_type">
                 <el-input v-model="formData.llmapp_type" placeholder="请输入类型" readonly />
             </el-form-item>
 
             <!-- base_url -->
-            <el-form-item label="base_url：" prop="base_url">
+            <el-form-item label="base_url" prop="base_url">
                 <el-input v-model="formData.base_url" placeholder="请输入base_url" />
             </el-form-item>
 
             <!-- api_key -->
-            <el-form-item label="api_key：" prop="api_key">
+            <el-form-item label="api_key" prop="api_key">
                 <el-input v-model="formData.api_key" placeholder="请输入api_key" />
             </el-form-item>
         </el-form>

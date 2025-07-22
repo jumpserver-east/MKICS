@@ -1,36 +1,36 @@
 <template>
     <o-form-wrap title="客服应用管理" @confirm="onConfirm">
-        <el-form ref="kfForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
-            <el-form-item label="客服应用名称：" prop="kfname">
+        <el-form ref="kfForm" class="w-200" :model="formData" :rules="formRules" label-position="right" label-width="160px">
+            <el-form-item label="客服应用名称" prop="kfname">
                 <el-input v-model="formData.kfname" placeholder="请输入客服名称" />
             </el-form-item>
 
-            <el-form-item label="客服平台：" prop="kfplatform">
+            <el-form-item label="客服平台" prop="kfplatform">
                 <el-input v-model="formData.kfplatform" placeholder="请输入客服平台" readonly />
             </el-form-item>
 
-            <el-form-item label="客服列表：" prop="kfid">
+            <el-form-item label="客服列表" prop="kfid">
                 <el-select v-model="formData.kfid" placeholder="请选择客服" :options="accountOptions">
                     <el-option v-for="account in accountOptions" :key="account.open_kfid" :label="account.name"
                         :value="account.open_kfid" />
                 </el-select>
             </el-form-item>
 
-            <el-form-item label="大语言模型应用列表：" prop="botid">
+            <el-form-item label="大语言模型应用列表" prop="botid">
                 <el-select v-model="formData.botid" placeholder="请选择大语言模型应用" :options="llmappOptions">
                     <el-option v-for="llmapp in llmappOptions" :key="llmapp.uuid" :label="llmapp.config_name"
                         :value="llmapp.uuid" />
                 </el-select>
             </el-form-item>
 
-            <el-form-item label="接待人员列表：" prop="staff_list">
+            <el-form-item label="接待人员列表" prop="staff_list">
                 <el-select v-model="formData.staff_list" multiple placeholder="请选择接待人员" :options="staffOptions">
                     <el-option v-for="staff in staffOptions" :key="staff.uuid" :label="staff.staffname"
                         :value="staff.uuid" />
                 </el-select>
             </el-form-item>
 
-            <el-form-item label="接待方式：" prop="status">
+            <el-form-item label="接待方式" prop="status">
                 <el-radio-group v-model="formData.status">
                     <el-radio :label="1">大语言模型应用可转人工</el-radio>
                     <el-radio :label="2">仅大语言模型应用</el-radio>
@@ -38,33 +38,33 @@
                 </el-radio-group>
             </el-form-item>
 
-            <el-form-item label="是否优先上一位接待人员：" prop="receive_priority">
+            <el-form-item label="是否优先上一位接待人员" prop="receive_priority">
                 <el-radio-group v-model="formData.receive_priority">
                     <el-radio :label="0">不优先</el-radio>
                     <el-radio :label="1">优先</el-radio>
                 </el-radio-group>
             </el-form-item>
 
-            <el-form-item label="接待规则：" prop="receive_rule">
+            <el-form-item label="接待规则" prop="receive_rule">
                 <el-radio-group v-model="formData.receive_rule">
                     <!-- <el-radio :label="1">轮流接待</el-radio> -->
                     <el-radio :label="2">空闲接待</el-radio>
                 </el-radio-group>
             </el-form-item>
 
-            <el-form-item label="客服应用会话超时时间（秒）：" prop="chat_timeout">
+            <el-form-item label="客服应用会话超时时间（秒）" prop="chat_timeout">
                 <el-input-number v-model="formData.chat_timeout" placeholder="请输入客服应用会话超时时间" />
             </el-form-item>
 
-            <el-form-item label="大语言模型应用超时时间（秒）：" prop="bot_timeout">
+            <el-form-item label="大语言模型应用超时时间（秒）" prop="bot_timeout">
                 <el-input-number v-model="formData.bot_timeout" placeholder="请输入大语言模型应用超时时间" />
             </el-form-item>
 
-            <el-form-item label="大语言模型应用超时消息：" prop="bot_timeout_msg">
+            <el-form-item label="大语言模型应用超时消息" prop="bot_timeout_msg">
                 <el-input v-model="formData.bot_timeout_msg" placeholder="请输入大语言模型应用超时消息" />
             </el-form-item>
 
-            <el-form-item label="客服应用欢迎消息（菜单）：" prop="bot_welcome_msg">
+            <el-form-item label="客服应用欢迎消息（菜单）" prop="bot_welcome_msg">
                 <el-input type="textarea" :rows="9" v-model="formData.bot_welcome_msg" placeholder="请输入大语言模型应用欢迎消息，例如：
 #H 起始文本
 #CLK 回复菜单
@@ -75,15 +75,15 @@
 />
             </el-form-item>
 
-            <el-form-item label="接待人员欢迎消息：" prop="staff_welcome_msg">
+            <el-form-item label="接待人员欢迎消息" prop="staff_welcome_msg">
                 <el-input v-model="formData.staff_welcome_msg" placeholder="请输入接待人员欢迎消息" />
             </el-form-item>
 
-            <el-form-item label="无人接待消息：" prop="unmanned_msg">
+            <el-form-item label="无人接待消息" prop="unmanned_msg">
                 <el-input v-model="formData.unmanned_msg" placeholder="请输入无人接待消息" />
             </el-form-item>
 
-            <el-form-item label="客服应用会话结束消息（菜单）：" prop="chatend_msg">
+            <el-form-item label="客服应用会话结束消息（菜单）" prop="chatend_msg">
                 <el-input type="textarea" :rows="7" v-model="formData.chatend_msg" placeholder="请输入会话结束消息，例如：
 #H 起始文本
 #CLK 回复菜单
@@ -93,7 +93,7 @@
 #T 结束文本" />
             </el-form-item>
 
-            <el-form-item label="转人工关键字列表：" prop="transfer_keywords">
+            <el-form-item label="转人工关键字列表" prop="transfer_keywords">
                 <el-input v-model="formData.transfer_keywords" placeholder="请输入转接关键字列表，用英文分号分隔，例如（转人工;人工）" />
             </el-form-item>
 
