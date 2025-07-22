@@ -1,6 +1,6 @@
 <template>
     <o-form-wrap title="客服应用管理" @confirm="onConfirm">
-        <el-form ref="kfForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
+        <el-form ref="kfForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
             <el-form-item label="客服应用名称：" prop="kfname">
                 <el-input v-model="formData.kfname" placeholder="请输入客服名称" />
             </el-form-item>

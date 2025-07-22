@@ -1,6 +1,6 @@
 <template>
     <o-form-wrap title="接待人员管理" @confirm="onConfirm">
-        <el-form ref="staffForm" class="w-100" :model="formData" :rules="formRules" label-position="top">
+        <el-form ref="staffForm" class="w-200" :model="formData" :rules="formRules" label-position="left">
             <!-- 人员名称 -->
             <el-form-item label="接待人员名称：" prop="staffname">
                 <el-input v-model="formData.staffname" placeholder="请输入接待人员名称" />

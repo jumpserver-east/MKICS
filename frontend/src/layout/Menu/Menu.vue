@@ -37,13 +37,13 @@ const defaultMenu = [
   {
     id: 'kf',
     name: '客服应用管理',
-    icon: 'Management',
+    icon: 'UserFilled',
     path: '/kf',
   },
   {
     id: 'staff',
     name: '接待人员管理',
-    icon: 'Management',
+    icon: 'Avatar',
     path: '/staff',
   },
   {
@@ -55,22 +55,24 @@ const defaultMenu = [
   {
     id: 'llmapp',
     name: '大语言模型应用管理',
-    icon: 'Management',
+    icon: 'Histogram',
     path: '/llmapp',
   },
   {
     id: 'wecom',
     name: '企业微信管理',
-    icon: 'Management',
+    icon: 'Comment',
     children: [
       {
         id: 'account',
         name: '客服账号管理',
+        icon: 'Grid',
         path: '/wecom/account',
       },
       {
         id: 'config',
         name: '自建应用配置',
+        icon: 'HelpFilled',
         path: '/wecom/config',
       },
     ],
