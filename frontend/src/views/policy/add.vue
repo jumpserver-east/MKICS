@@ -41,8 +41,9 @@
               format="HH:mm:ss"
               value-format="HH:mm:ss"
               @change="(val) => handleTimeChange(index, val)"
+              class="work-time-x"
             ></el-time-picker>
-            <el-button @click="removeWorkTime(index)" type="danger">删除</el-button>
+            <el-button @click="removeWorkTime(index)" type="danger"><el-icon><DeleteFilled /></el-icon></el-button>
           </div>
       </el-form-item>
     </el-form>
@@ -176,3 +177,11 @@ onBeforeMount(() => {
   if (isEditing.value) policyInfo()
 })
 </script>
+<style lang="scss" scoped>
+.work-time{
+  width:70vw;
+  .work-time-x{
+    width:80%;
+  }
+}
+</style>
