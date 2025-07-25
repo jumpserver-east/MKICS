@@ -1,9 +1,8 @@
 package v1
 
 import (
-	"EvoBot/backend/app/api/v1/helper"
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/constant"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,23 +18,17 @@ import (
 func (u *BaseApi) StaffAdd(ctx *gin.Context) {
 	var req request.Staff
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if req.StaffID == "" || req.StaffName == "" {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-		return
-	}
-	if req.PolicyList == nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-		return
-	}
+
 	err := staffLogic.StaffAdd(req)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags staff
@@ -49,16 +42,19 @@ func (u *BaseApi) StaffAdd(ctx *gin.Context) {
 // @Router /staff/{uuid} [patch]
 func (u *BaseApi) StaffUpdate(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	var req request.Staff
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
+
 	if err := staffLogic.StaffUpdate(uuid, req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags staff
@@ -71,11 +67,13 @@ func (u *BaseApi) StaffUpdate(ctx *gin.Context) {
 // @Router /staff/{uuid} [delete]
 func (u *BaseApi) StaffDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	if err := staffLogic.StaffDel(uuid); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags staff
@@ -88,12 +86,14 @@ func (u *BaseApi) StaffDel(ctx *gin.Context) {
 // @Router /staff/{uuid} [get]
 func (u *BaseApi) StaffGet(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
-	staff, err := staffLogic.StaffGet(uuid)
+
+	data, err := staffLogic.StaffGet(uuid)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, staff)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // @Tags staff
@@ -104,10 +104,11 @@ func (u *BaseApi) StaffGet(ctx *gin.Context) {
 // @Success 200 {object} dto.Response
 // @Router /staff [get]
 func (u *BaseApi) StaffList(ctx *gin.Context) {
-	staffs, err := staffLogic.StaffList()
+	data, err := staffLogic.StaffList()
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, staffs)
+
+	response.SuccessWithData(ctx, data)
 }

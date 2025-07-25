@@ -1,18 +1,18 @@
 package logic
 
 import (
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/app/dto/response"
-	"EvoBot/backend/constant"
-	"EvoBot/backend/global"
-	"EvoBot/backend/utils/jwt"
-	"EvoBot/backend/utils/passwd"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/constant"
+	"MKICS/backend/global"
+	"MKICS/backend/utils/jwt"
+	"MKICS/backend/utils/passwd"
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 )
 
 type AuthLogic struct{}
@@ -29,10 +29,10 @@ func NewIAuthLogic() IAuthLogic {
 func (u *AuthLogic) Login(c *gin.Context, req request.Login) (*response.Tokens, error) {
 	user, err := authRepo.Get(authRepo.WithByUsername(req.Username))
 	if err != nil {
-		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return nil, err
 	}
 	if !passwd.Verify(req.Password, user.Password) {
-		return nil, constant.ErrAuth
+		return nil, errors.New("login failed")
 	}
 	accessToken, err := jwt.AccessToken(user.UUID)
 	if err != nil {

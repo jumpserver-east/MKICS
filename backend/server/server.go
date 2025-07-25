@@ -1,14 +1,14 @@
 package server
 
 import (
-	"EvoBot/backend/global"
-	"EvoBot/backend/init/db"
-	"EvoBot/backend/init/migration"
-	"EvoBot/backend/init/redis"
-	"EvoBot/backend/init/router"
-	"EvoBot/backend/init/support"
-	"EvoBot/backend/init/viper"
-	"EvoBot/backend/init/zaplog"
+	"MKICS/backend/global"
+	"MKICS/backend/init/db"
+	"MKICS/backend/init/migration"
+	"MKICS/backend/init/redis"
+	"MKICS/backend/init/router"
+	"MKICS/backend/init/support"
+	"MKICS/backend/init/viper"
+	"MKICS/backend/init/zaplog"
 	"fmt"
 )
 

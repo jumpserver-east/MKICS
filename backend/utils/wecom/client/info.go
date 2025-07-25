@@ -5,11 +5,6 @@ import (
 	"github.com/silenceper/wechat/v2/work/kf/syncmsg"
 )
 
-type DeptUser struct {
-	UserID     string `json:"userid"`
-	Department int    `json:"department"`
-}
-
 type WecomConfig struct {
 	Type           string `json:"type"`
 	CorpID         string `json:"corp_id"`

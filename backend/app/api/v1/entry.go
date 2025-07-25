@@ -1,6 +1,6 @@
 package v1
 
-import "EvoBot/backend/app/logic"
+import "MKICS/backend/app/logic"
 
 type ApiGroup struct {
 	BaseApi

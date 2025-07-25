@@ -1,6 +1,6 @@
 package response
 
-import "EvoBot/backend/app/dto"
+import "MKICS/backend/app/dto"
 
 type Policy struct {
 	UUID string `json:"uuid"`

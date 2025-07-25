@@ -1,7 +1,7 @@
 package db
 
 import (
-	"EvoBot/backend/global"
+	"MKICS/backend/global"
 	"fmt"
 	"log"
 	"os"

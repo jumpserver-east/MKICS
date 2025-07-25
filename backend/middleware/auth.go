@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"EvoBot/backend/app/api/v1/helper"
-	"EvoBot/backend/constant"
-	"EvoBot/backend/global"
-	"EvoBot/backend/utils/jwt"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/constant"
+	"MKICS/backend/global"
+	"MKICS/backend/utils/jwt"
 	"context"
 	"strings"
 
@@ -16,22 +16,22 @@ func AuthRequired() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.Request.Header.Get(constant.TokenKey)
 		if token == "" {
-			helper.ErrResponseWithMsg(ctx, constant.CodeErrUnauthorized, "no login")
+			response.Unauthorized(ctx, "no login")
 			return
 		}
 		parts := strings.SplitN(token, " ", 2)
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			helper.ErrResponseWithMsg(ctx, constant.CodeErrUnauthorized, "token format is incorrect")
+			response.Unauthorized(ctx, "token format is incorrect")
 			return
 		}
 		claims, err := jwt.VerifyToken(parts[1])
 		if err != nil {
 			global.ZAPLOG.With(zap.String("token", parts[1]), zap.String("IP", ctx.RemoteIP())).Error(err.Error())
-			helper.ErrResponseWithMsg(ctx, constant.CodeErrUnauthorized, "invalid or expired token")
+			response.Unauthorized(ctx, "invalid or expired token")
 			return
 		}
 		if !validateTokenWithRedis(claims.UUID, parts[1], ctx.RemoteIP()) {
-			helper.ErrResponseWithMsg(ctx, constant.CodeErrUnauthorized, "token expired or used elsewhere")
+			response.Unauthorized(ctx, "token expired or used elsewhere")
 			return
 		}
 		ctx.Set("user", map[string]interface{}{

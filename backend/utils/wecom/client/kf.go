@@ -1,7 +1,7 @@
 package client
 
 import (
-	"EvoBot/backend/global"
+	"MKICS/backend/global"
 	"sync"
 	"time"
 
@@ -228,7 +228,7 @@ func (k *WecomKF) AccountList() ([]AccountInfoSchema, error) {
 func (k *WecomKF) AddContactWay(kfid string) (string, error) {
 	var opt kf.AddContactWayOptions
 	opt.OpenKFID = kfid
-	opt.Scene = "evobot"
+	opt.Scene = "MKICS"
 	info, err := k.KFClient.AddContactWay(opt)
 	if err != nil {
 		return "", err

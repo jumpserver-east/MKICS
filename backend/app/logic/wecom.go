@@ -1,15 +1,15 @@
 package logic
 
 import (
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/app/dto/response"
-	"EvoBot/backend/app/model"
-	"EvoBot/backend/constant"
-	"EvoBot/backend/global"
-	utils "EvoBot/backend/utils/redis"
-	"EvoBot/backend/utils/wecom"
-	wecomclient "EvoBot/backend/utils/wecom/client"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/app/model"
+	"MKICS/backend/constant"
+	"MKICS/backend/global"
+	utils "MKICS/backend/utils/redis"
+	"MKICS/backend/utils/wecom"
+	wecomclient "MKICS/backend/utils/wecom/client"
 	"fmt"
 	"strings"
 

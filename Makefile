@@ -1,4 +1,4 @@
-NAME=evobot
+NAME=mkics
 BUILDDIR=build
 
 BASEPATH := $(shell pwd)

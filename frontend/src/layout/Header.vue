@@ -9,7 +9,7 @@
       <expand v-if="isCollapse" />
       <fold v-else />
     </el-icon>
-    <span class="ml-3"> Evobot 管理系统 </span>
+    <span class="ml-3"> MKICS 管理系统 </span>
   </div>
   <div class="flex justify-end">
     <el-dropdown>

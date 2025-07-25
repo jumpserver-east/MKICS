@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"EvoBot/backend/app/model"
+	"MKICS/backend/app/model"
 
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"

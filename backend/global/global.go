@@ -1,8 +1,8 @@
 package global
 
 import (
-	"EvoBot/backend/configs"
-	"EvoBot/backend/utils/support"
+	"MKICS/backend/configs"
+	"MKICS/backend/utils/support"
 
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"

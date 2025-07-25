@@ -1,8 +1,8 @@
 package repo
 
 import (
-	"EvoBot/backend/app/model"
-	"EvoBot/backend/global"
+	"MKICS/backend/app/model"
+	"MKICS/backend/global"
 
 	"gorm.io/gorm"
 )

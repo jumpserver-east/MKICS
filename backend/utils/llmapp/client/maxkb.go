@@ -1,7 +1,7 @@
 package client
 
 import (
-	"EvoBot/backend/global"
+	"MKICS/backend/global"
 
 	"github.com/Ewall555/MaxKB-golang-sdk/api/application"
 	mkreq "github.com/Ewall555/MaxKB-golang-sdk/api/request"   // 请求参数

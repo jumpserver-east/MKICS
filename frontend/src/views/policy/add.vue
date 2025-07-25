@@ -38,8 +38,8 @@
               range-separator="至"
               start-placeholder="开始时间"
               end-placeholder="结束时间"
-              format="HH:mm:ss"
-              value-format="HH:mm:ss"
+              format="HH:mm"
+              value-format="HH:mm"
               @change="(val) => handleTimeChange(index, val)"
             ></el-time-picker>
             <el-button @click="removeWorkTime(index)" type="danger">删除</el-button>
@@ -75,11 +75,11 @@ const formData = reactive<IPolicy>({
   max_count: 100,
   repeat: 1,
   week: '',
-  work_times: [{ start_time: '08:00:00', end_time: '18:00:00' }]
+  work_times: [{ start_time: '08:00', end_time: '18:00' }]
 })
 
 const tempTimeRanges = ref<[string, string][]>([
-  ['08:00:00', '18:00:00'] 
+  ['08:00', '18:00'] 
 ]);
 
 const handleTimeChange = (index: number, val: [string, string] | null) => {

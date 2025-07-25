@@ -1,9 +1,8 @@
 package v1
 
 import (
-	"EvoBot/backend/app/api/v1/helper"
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/constant"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,12 +16,14 @@ import (
 // @Router /llmapp/config/{uuid} [get]
 func (u *BaseApi) LLMAppConfigGet(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
-	llmapp, err := llmappLogic.ConfigGet(uuid)
+
+	data, err := llmappLogic.ConfigGet(uuid)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, llmapp)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // @Tags llmapp
@@ -36,15 +37,16 @@ func (u *BaseApi) LLMAppConfigGet(ctx *gin.Context) {
 func (u *BaseApi) LLMAppConfigAdd(ctx *gin.Context) {
 	var req dto.LLMAppConfig
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	err := llmappLogic.ConfigAdd(req)
-	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+
+	if err := llmappLogic.ConfigAdd(req); err != nil {
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags llmapp
@@ -55,14 +57,15 @@ func (u *BaseApi) LLMAppConfigAdd(ctx *gin.Context) {
 // @Param uuid path string true "UUID of the llmapp configuration"
 // @Success 200 {object} dto.Response "Success response"
 // @Router /llmapp/config/{uuid} [delete]
-
 func (u *BaseApi) LLMAppConfigDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	if err := llmappLogic.ConfigDel(uuid); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags llmapp_config
@@ -76,16 +79,19 @@ func (u *BaseApi) LLMAppConfigDel(ctx *gin.Context) {
 // @Router /llmapp/config/{uuid} [patch]
 func (b *BaseApi) LLMAppConfigUpdate(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	var req dto.LLMAppConfig
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
+
 	if err := llmappLogic.ConfigUpdate(uuid, req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags llmapp_config
@@ -96,10 +102,11 @@ func (b *BaseApi) LLMAppConfigUpdate(ctx *gin.Context) {
 // @Success 200 {object} dto.LLMAppConfig
 // @Router /llmapp/config [get]
 func (b *BaseApi) LLMAppConfigList(ctx *gin.Context) {
-	conf, err := llmappLogic.ConfigList()
+	data, err := llmappLogic.ConfigList()
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, conf)
+
+	response.SuccessWithData(ctx, data)
 }

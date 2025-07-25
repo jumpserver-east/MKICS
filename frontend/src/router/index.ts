@@ -15,8 +15,8 @@ router.beforeEach((to, from, next) => {
   }
 
   window.document.title = to.meta.title
-    ? `${to.meta.title} | Evobot`
-    : "Evobot";
+    ? `${to.meta.title} | MKICS`
+    : "MKICS";
 
   const isLogin = getToken();
   if (isLogin) {

@@ -1,7 +1,7 @@
 package router
 
 import (
-	v1 "EvoBot/backend/app/api/v1"
+	v1 "MKICS/backend/app/api/v1"
 
 	"github.com/gin-gonic/gin"
 )
