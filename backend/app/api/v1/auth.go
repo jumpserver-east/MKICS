@@ -1,9 +1,9 @@
 package v1
 
 import (
-	"EvoBot/backend/app/api/v1/helper"
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/constant"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/constant"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,15 +20,17 @@ type BaseApi struct{}
 func (b *BaseApi) Login(ctx *gin.Context) {
 	var req request.Login
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
+
 	tokens, err := authLogic.Login(ctx, req)
 	if err != nil {
-		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, tokens)
+
+	response.SuccessWithData(ctx, tokens)
 }
 
 // @Tags auth
@@ -39,16 +41,12 @@ func (b *BaseApi) Login(ctx *gin.Context) {
 // @Router /auth/logout [post]
 func (b *BaseApi) Logout(ctx *gin.Context) {
 	token := ctx.GetHeader(constant.TokenKey)
-	if token == "" {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-		return
-	}
 
 	err := authLogic.Logout(ctx, token)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
 
-	helper.SuccessWithOutData(ctx)
+	response.SuccessWithMsg(ctx, "success")
 }

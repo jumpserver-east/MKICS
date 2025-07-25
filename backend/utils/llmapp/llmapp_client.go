@@ -1,8 +1,9 @@
 package llmapp
 
 import (
-	"EvoBot/backend/constant"
-	"EvoBot/backend/utils/llmapp/client"
+	"MKICS/backend/constant"
+	"MKICS/backend/utils/llmapp/client"
+	"errors"
 )
 
 type LLMAppClient interface {
@@ -15,6 +16,6 @@ func NewLLMAppClient(llmappType string, vars map[string]interface{}) (LLMAppClie
 	case constant.Maxkb:
 		return client.NewMaxkbClient(vars)
 	default:
-		return nil, constant.ErrNotSupportType
+		return nil, errors.New("not support type")
 	}
 }

@@ -23,7 +23,7 @@ ENV CGO_ENABLED=0 \
     GO111MODULE=on \
     GOPROXY=${GOPROXY} 
 
-WORKDIR /opt/evobot
+WORKDIR /opt/mkics
 
 # 先复制所有源码
 COPY . .
@@ -31,9 +31,9 @@ COPY . .
 # 再复制前端构建产物，让 embed 可以找到
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
-WORKDIR /opt/evobot/cmd
+WORKDIR /opt/mkics/cmd
 
-RUN go mod download -x && go build -ldflags="-s -w" -o /opt/evobot/evobot ./main.go
+RUN go mod download -x && go build -ldflags="-s -w" -o /opt/mkics/mkics ./main.go
 
 
 # 第三阶段：构建最终产物
@@ -43,11 +43,11 @@ RUN apk add --no-cache bash tzdata \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone
 
-WORKDIR /opt/evobot
+WORKDIR /opt/mkics
 
 # 拷贝可执行文件与配置
-COPY --from=go-build /opt/evobot/evobot .
-COPY --from=go-build /opt/evobot/cmd/conf/config-example.yaml ./config.yaml
+COPY --from=go-build /opt/mkics/mkics .
+COPY --from=go-build /opt/mkics/cmd/conf/config-example.yaml ./config.yaml
 
 # 可选：再拷贝一次前端资源（如果运行时也要 serve 静态文件）
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
@@ -56,4 +56,4 @@ ENV TZ=Asia/Shanghai
 
 EXPOSE 24916
 
-CMD ["/opt/evobot/evobot", "-c", "/opt/evobot/conf/config.yaml"]
+CMD ["/opt/mkics/mkics", "-c", "/opt/mkics/conf/config.yaml"]

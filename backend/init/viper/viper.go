@@ -1,7 +1,7 @@
 package viper
 
 import (
-	"EvoBot/backend/global"
+	"MKICS/backend/global"
 	"fmt"
 
 	"github.com/fsnotify/fsnotify"

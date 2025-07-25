@@ -1,8 +1,8 @@
 package logic
 
 import (
-	"EvoBot/backend/constant"
-	"EvoBot/backend/global"
+	"MKICS/backend/constant"
+	"MKICS/backend/global"
 	"context"
 	"regexp"
 	"strings"
@@ -64,19 +64,29 @@ func isStaffWorkByStaffID(staffid string) (bool, error) {
 }
 
 func isTimeInRange(startTimeStr, endTimeStr string) bool {
-	layout := "15:04:05"
-	startTime, err1 := time.Parse(layout, startTimeStr)
-	endTime, err2 := time.Parse(layout, endTimeStr)
-	if err1 != nil || err2 != nil {
-		global.ZAPLOG.Error(err1.Error())
-		global.ZAPLOG.Error(err2.Error())
+
+	startTime, err := time.Parse(constant.TimeLayout, startTimeStr)
+	if err != nil {
+		global.ZAPLOG.Error(err.Error())
 		return false
 	}
-	now := time.Now()
-	currentTime, _ := time.Parse(layout, now.Format(layout))
+
+	endTime, err := time.Parse(constant.TimeLayout, endTimeStr)
+	if err != nil {
+		global.ZAPLOG.Error(err.Error())
+		return false
+	}
+
+	currentTime, err := time.Parse(constant.TimeLayout, time.Now().Format(constant.TimeLayout))
+	if err != nil {
+		global.ZAPLOG.Error(err.Error())
+		return false
+	}
+
 	if currentTime.After(startTime) && currentTime.Before(endTime) {
 		return true
 	}
+
 	return false
 }
 

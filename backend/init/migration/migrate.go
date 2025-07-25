@@ -1,8 +1,8 @@
 package migration
 
 import (
-	"EvoBot/backend/global"
-	"EvoBot/backend/init/migration/migrations"
+	"MKICS/backend/global"
+	"MKICS/backend/init/migration/migrations"
 
 	"github.com/go-gormigrate/gormigrate/v2"
 )

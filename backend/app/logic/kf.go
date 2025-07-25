@@ -1,18 +1,18 @@
 package logic
 
 import (
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/app/dto/response"
-	"EvoBot/backend/app/model"
-	"EvoBot/backend/global"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/app/model"
+	"MKICS/backend/global"
 )
 
 type KFLogic struct {
 }
 
 type IKFLogic interface {
-	KFAdd(req request.KF) error
+	KFAdd(req request.KF) (err error)
 	KFUpdate(uuid string, req request.KF) error
 	KFDel(uuid string) error
 	KFGet(uuid string) (response.KF, error)
@@ -23,15 +23,8 @@ func NewIKFLogic() IKFLogic {
 	return &KFLogic{}
 }
 
-func (u *KFLogic) KFAdd(req request.KF) error {
-	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	defer tx.Rollback()
-	kf := model.KF{
+func (k *KFLogic) KFAdd(req request.KF) (err error) {
+	mod := model.KF{
 		KFName:           req.KFName,
 		KFID:             req.KFID,
 		KFPlatform:       req.KFPlatform,
@@ -48,28 +41,23 @@ func (u *KFLogic) KFAdd(req request.KF) error {
 		ChatendMsg:       req.ChatendMsg,
 		TransferKeywords: req.TransferKeywords,
 	}
-	staffs, err := staffRepo.List(commonRepo.WithUUIDsIn(req.StaffList))
+
+	mod.Staffs, err = staffRepo.List(commonRepo.WithUUIDsIn(req.StaffList))
 	if err != nil {
 		global.ZAPLOG.Error(err.Error())
-		return err
+		return
 	}
-	kf.Staffs = staffs
-	if err := kFRepo.Create(kf); err != nil {
+
+	err = kFRepo.Create(mod)
+	if err != nil {
 		global.ZAPLOG.Error(err.Error())
-		return err
+		return
 	}
-	tx.Commit()
-	return nil
+
+	return
 }
 
-func (u *KFLogic) KFUpdate(uuid string, req request.KF) error {
-	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	defer tx.Rollback()
+func (k *KFLogic) KFUpdate(uuid string, req request.KF) (err error) {
 	kf, err := kFRepo.Get(commonRepo.WithByUUID(uuid))
 	if err != nil {
 		return err
@@ -97,14 +85,14 @@ func (u *KFLogic) KFUpdate(uuid string, req request.KF) error {
 		}
 		kf.Staffs = staffs
 	}
-	if err := kFRepo.Update(kf); err != nil {
-		return err
+	err = kFRepo.Update(kf)
+	if err != nil {
+		return
 	}
-	tx.Commit()
-	return nil
+	return
 }
 
-func (u *KFLogic) KFDel(uuid string) error {
+func (k *KFLogic) KFDel(uuid string) error {
 	tx := global.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -119,7 +107,7 @@ func (u *KFLogic) KFDel(uuid string) error {
 	return nil
 }
 
-func (u *KFLogic) KFGet(uuid string) (response.KF, error) {
+func (k *KFLogic) KFGet(uuid string) (response.KF, error) {
 	kf, err := kFRepo.Get(commonRepo.WithByUUID(uuid))
 	if err != nil {
 		return response.KF{}, err
@@ -148,8 +136,6 @@ func (u *KFLogic) KFGet(uuid string) (response.KF, error) {
 		staffres.UUID = staff.UUID
 		staffres.StaffID = staff.StaffID
 		staffres.StaffName = staff.StaffName
-		staffres.Number = staff.Number
-		staffres.Email = staff.Email
 		staffres.Policies = policies
 		staffs = append(staffs, staffres)
 	}
@@ -174,7 +160,7 @@ func (u *KFLogic) KFGet(uuid string) (response.KF, error) {
 	return kfres, nil
 }
 
-func (u *KFLogic) KFList() ([]response.KF, error) {
+func (k *KFLogic) KFList() ([]response.KF, error) {
 	kfs, err := kFRepo.List()
 	if err != nil {
 		return nil, err
@@ -205,8 +191,6 @@ func (u *KFLogic) KFList() ([]response.KF, error) {
 			staffres.UUID = staff.UUID
 			staffres.StaffID = staff.StaffID
 			staffres.StaffName = staff.StaffName
-			staffres.Number = staff.Number
-			staffres.Email = staff.Email
 			staffres.Policies = policies
 			staffs = append(staffs, staffres)
 		}

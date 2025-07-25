@@ -1,7 +1,7 @@
 package response
 
 import (
-	"EvoBot/backend/app/dto"
+	"MKICS/backend/app/dto"
 )
 
 type Staff struct {

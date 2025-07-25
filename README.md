@@ -29,7 +29,7 @@ go run .\cmd\server\main.go -c .\cmd\server\conf\config.yaml
 
 构建二进制文件
 
-go build -o evobot
+go build -o mkics
 
 swagger 页面：http://127.0.0.1:24916/swagger/index.html
 

@@ -1,6 +1,6 @@
 package logic
 
-import "EvoBot/backend/app/repo"
+import "MKICS/backend/app/repo"
 
 var (
 	commonRepo = repo.NewCommonRepo()

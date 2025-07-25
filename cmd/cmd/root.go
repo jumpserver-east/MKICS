@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"EvoBot/backend/server"
+	"MKICS/backend/server"
 
 	"github.com/spf13/cobra"
 )
@@ -9,12 +9,12 @@ import (
 var configFile string
 
 func init() {
-	RootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "/opt/evobot/conf/config.yaml", "Config file path")
+	RootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "/opt/mkics/conf/config.yaml", "Config file path")
 }
 
 var RootCmd = &cobra.Command{
-	Use:   "EvoBot",
-	Short: "EvoBot",
+	Use:   "MKICS",
+	Short: "MKICS",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		server.Start(configFile)
 		return nil

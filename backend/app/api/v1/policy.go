@@ -1,9 +1,8 @@
 package v1
 
 import (
-	"EvoBot/backend/app/api/v1/helper"
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/constant"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,46 +18,16 @@ import (
 func (u *BaseApi) PolicyAdd(ctx *gin.Context) {
 	var req dto.Policy
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if req.PolicyName == "" || req.MaxCount == 0 || req.Repeat == 0 || len(req.WorkTimes) == 0 {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-		return
-	}
-	validRepeats := []int{1, 2, 3, 4, 5}
-	isValid := false
-	for _, valid := range validRepeats {
-		if req.Repeat == valid {
-			isValid = true
-			break
-		}
-	}
-	if !isValid {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-		return
-	}
-	if req.Repeat == 1 && req.Week == "" {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-		return
-	}
-	if req.Week != "" {
-		if len(req.Week) != 7 {
-			helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-			return
-		}
-		for _, char := range req.Week {
-			if char != '0' && char != '1' {
-				helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-				return
-			}
-		}
-	}
+
 	if err := policyLogic.PolicyAdd(req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags policy
@@ -72,46 +41,19 @@ func (u *BaseApi) PolicyAdd(ctx *gin.Context) {
 // @Router /policy/{uuid} [patch]
 func (u *BaseApi) PolicyUpdate(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	var req dto.Policy
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if req.Repeat != 0 {
-		validRepeats := []int{1, 2, 3, 4, 5}
-		isValid := false
-		for _, valid := range validRepeats {
-			if req.Repeat == valid {
-				isValid = true
-				break
-			}
-		}
-		if !isValid {
-			helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-			return
-		}
-		if req.Repeat == 1 && req.Week == "" {
-			helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-			return
-		}
-		if req.Week != "" {
-			if len(req.Week) != 7 {
-				helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-				return
-			}
-			for _, char := range req.Week {
-				if char != '0' && char != '1' {
-					helper.ErrResponse(ctx, constant.CodeErrBadRequest)
-					return
-				}
-			}
-		}
-	}
+
 	if err := policyLogic.PolicyUpdate(uuid, req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags policy
@@ -124,11 +66,13 @@ func (u *BaseApi) PolicyUpdate(ctx *gin.Context) {
 // @Router /policy/{uuid} [delete]
 func (u *BaseApi) PolicyDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	if err := policyLogic.PolicyDel(uuid); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags policy
@@ -141,12 +85,14 @@ func (u *BaseApi) PolicyDel(ctx *gin.Context) {
 // @Router /policy/{uuid} [get]
 func (u *BaseApi) PolicyGet(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
-	strategy, err := policyLogic.PolicyGet(uuid)
+
+	data, err := policyLogic.PolicyGet(uuid)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, strategy)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // PolicyList retrieves all policy
@@ -158,10 +104,11 @@ func (u *BaseApi) PolicyGet(ctx *gin.Context) {
 // @Success 200 {object} dto.Response
 // @Router /policy [get]
 func (u *BaseApi) PolicyList(ctx *gin.Context) {
-	strategies, err := policyLogic.PolicyList()
+	data, err := policyLogic.PolicyList()
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, strategies)
+
+	response.SuccessWithData(ctx, data)
 }

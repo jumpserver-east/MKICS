@@ -1,11 +1,11 @@
 package logic
 
 import (
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/app/dto/response"
-	"EvoBot/backend/app/model"
-	"EvoBot/backend/global"
-	"EvoBot/backend/utils/llmapp"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/app/model"
+	"MKICS/backend/global"
+	"MKICS/backend/utils/llmapp"
 
 	"go.uber.org/zap"
 )

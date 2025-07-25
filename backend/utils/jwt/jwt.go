@@ -1,8 +1,8 @@
 package jwt
 
 import (
-	"EvoBot/backend/constant"
-	"EvoBot/backend/global"
+	"MKICS/backend/global"
+	"errors"
 	"sync"
 	"time"
 
@@ -39,7 +39,7 @@ func generateToken(uuid string, expire time.Duration) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expire)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "evobot",
+			Issuer:    "MKICS",
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -64,11 +64,11 @@ func VerifyToken(tokenString string) (*CustomClaims, error) {
 		return mySigningKey, nil
 	})
 	if err != nil || token == nil {
-		return nil, constant.ErrTokenParse
+		return nil, errors.New("token parse error")
 	}
 	claims, ok := token.Claims.(*CustomClaims)
 	if !ok || !token.Valid {
-		return nil, constant.ErrTokenParse
+		return nil, errors.New("token parse error")
 	}
 	return claims, nil
 }

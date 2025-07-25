@@ -1,10 +1,11 @@
 package logic
 
 import (
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/app/dto/response"
-	"EvoBot/backend/app/model"
-	"EvoBot/backend/global"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/app/model"
+	"MKICS/backend/constant"
+	"MKICS/backend/global"
 	"time"
 )
 
@@ -38,11 +39,13 @@ func (u *PolicyLogic) PolicyAdd(req dto.Policy) error {
 		MaxCount:   req.MaxCount,
 	}
 	for _, worktime := range req.WorkTimes {
-		if _, err := time.Parse("15:04:05", worktime.StartTime); err != nil {
+
+		if _, err := time.Parse(constant.TimeLayout, worktime.StartTime); err != nil {
 			global.ZAPLOG.Error(err.Error())
 			return err
 		}
-		if _, err := time.Parse("15:04:05", worktime.EndTime); err != nil {
+
+		if _, err := time.Parse(constant.TimeLayout, worktime.EndTime); err != nil {
 			global.ZAPLOG.Error(err.Error())
 			return err
 		}

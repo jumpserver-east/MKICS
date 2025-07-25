@@ -1,8 +1,8 @@
 package support
 
 import (
-	"EvoBot/backend/utils/support/httplib"
-	"EvoBot/backend/utils/support/model"
+	"MKICS/backend/utils/support/httplib"
+	"MKICS/backend/utils/support/model"
 	"fmt"
 	"net/http"
 	"strconv"

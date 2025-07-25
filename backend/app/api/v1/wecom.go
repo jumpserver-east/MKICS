@@ -1,10 +1,9 @@
 package v1
 
 import (
-	"EvoBot/backend/app/api/v1/helper"
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/constant"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,12 +17,13 @@ import (
 // @Success 200 {object} dto.Response "Current Wecom configuration"
 // @Router /wecom/config [get]
 func (b *BaseApi) WecomConfigList(ctx *gin.Context) {
-	conf, err := wecomLogic.ConfigList()
+	data, err := wecomLogic.ConfigList()
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, conf)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // @Tags wecom_config
@@ -35,12 +35,14 @@ func (b *BaseApi) WecomConfigList(ctx *gin.Context) {
 // @Router /wecom/config/{uuid} [get]
 func (b *BaseApi) WecomConfigGet(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
-	conf, err := wecomLogic.ConfigGet(uuid)
+
+	data, err := wecomLogic.ConfigGet(uuid)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, conf)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // @Tags wecom_config
@@ -53,16 +55,19 @@ func (b *BaseApi) WecomConfigGet(ctx *gin.Context) {
 // @Router /wecom/config/{uuid} [patch]
 func (b *BaseApi) WecomConfigUpdate(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	var req request.WecomConfigApp
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
+
 	if err := wecomLogic.ConfigUpdate(uuid, req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags wecom_callback
@@ -80,24 +85,30 @@ func (b *BaseApi) WecomHandle(ctx *gin.Context) {
 	if ctx.Request.Method == http.MethodGet {
 		var options dto.SignatureOptions
 		if err := ctx.ShouldBindQuery(&options); err != nil {
-			helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+			response.BadRequest(ctx, err.Error())
 			return
 		}
+
 		echo, err := wecomLogic.VerifyURL(options)
 		if err != nil {
-			helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+			response.InternalServerError(ctx, err.Error())
 			return
 		}
-		ctx.String(constant.CodeSuccess, echo)
+
+		ctx.String(http.StatusOK, echo)
+		ctx.Abort()
 		return
 	}
+
 	body, err := ctx.GetRawData()
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
+
 	wecomLogic.CallbackHandler(body)
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags wecom_receptionist
@@ -110,16 +121,19 @@ func (b *BaseApi) WecomHandle(ctx *gin.Context) {
 // @Router /wecom/receptionist/{kfid} [post]
 func (b *BaseApi) WecomReceptionistAdd(ctx *gin.Context) {
 	kfid := ctx.Param("kfid")
-	var options request.ReceptionistOptions
-	if err := ctx.ShouldBindJSON(&options); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+
+	var req request.ReceptionistOptions
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if err := wecomLogic.ReceptionistAdd(kfid, options); err != nil {
-		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
+
+	if err := wecomLogic.ReceptionistAdd(kfid, req); err != nil {
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags wecom_receptionist
@@ -132,16 +146,19 @@ func (b *BaseApi) WecomReceptionistAdd(ctx *gin.Context) {
 // @Router /wecom/receptionist/{kfid} [delete]
 func (b *BaseApi) WecomReceptionistDel(ctx *gin.Context) {
 	kfid := ctx.Param("kfid")
-	var options request.ReceptionistOptions
-	if err := ctx.ShouldBindJSON(&options); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+
+	var req request.ReceptionistOptions
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if err := wecomLogic.ReceptionistDel(kfid, options); err != nil {
-		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
+
+	if err := wecomLogic.ReceptionistDel(kfid, req); err != nil {
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags wecom_receptionist
@@ -153,12 +170,14 @@ func (b *BaseApi) WecomReceptionistDel(ctx *gin.Context) {
 // @Router /wecom/receptionist/{kfid} [get]
 func (b *BaseApi) WecomReceptionistList(ctx *gin.Context) {
 	kfid := ctx.Param("kfid")
-	list, err := wecomLogic.ReceptionistList(kfid)
+
+	data, err := wecomLogic.ReceptionistList(kfid)
 	if err != nil {
-		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, list)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // @Tags wecom_account
@@ -169,12 +188,13 @@ func (b *BaseApi) WecomReceptionistList(ctx *gin.Context) {
 // @Success 200 {object} []client.AccountInfoSchema
 // @Router /wecom/account [get]
 func (b *BaseApi) WecomAccountList(ctx *gin.Context) {
-	list, err := wecomLogic.AccountList()
+	data, err := wecomLogic.AccountList()
 	if err != nil {
-		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, list)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // @Tags wecom_account
@@ -186,10 +206,12 @@ func (b *BaseApi) WecomAccountList(ctx *gin.Context) {
 // @Router /wecom/account/{kfid} [get]
 func (b *BaseApi) WecomAddContactWay(ctx *gin.Context) {
 	kfid := ctx.Param("kfid")
-	url, err := wecomLogic.AddContactWay(kfid)
+
+	data, err := wecomLogic.AddContactWay(kfid)
 	if err != nil {
-		helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, url)
+
+	response.SuccessWithData(ctx, data)
 }

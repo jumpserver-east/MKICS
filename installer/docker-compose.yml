@@ -1,12 +1,12 @@
 services:
-  evobot:
-    image: jumpserver-east/evobot:${VERSION}
-    container_name: evobot
+  mkics:
+    image: jumpserver-east/mkics:${VERSION}
+    container_name: mkics
     ulimits:
       core: 0
     ports:
       - "24916:24916"
     volumes:
-      - ${VOLUME_DIR}/log:/opt/evobot/log
-      - ${VOLUME_DIR}/config/:/opt/evobot/conf
+      - ${VOLUME_DIR}/log:/opt/mkics/log
+      - ${VOLUME_DIR}/config/:/opt/mkics/conf
     restart: always

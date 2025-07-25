@@ -1,11 +1,11 @@
 package logic
 
 import (
-	"EvoBot/backend/app/dto"
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/app/dto/response"
-	"EvoBot/backend/app/model"
-	"EvoBot/backend/global"
+	"MKICS/backend/app/dto"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
+	"MKICS/backend/app/model"
+	"MKICS/backend/global"
 )
 
 type StaffLogic struct {
@@ -28,8 +28,6 @@ func (u *StaffLogic) StaffAdd(req request.Staff) error {
 	staff := model.Staff{
 		StaffID:   req.StaffID,
 		StaffName: req.StaffName,
-		Number:    req.Number,
-		Email:     req.Email,
 		Role:      req.Role,
 	}
 	policies, err := policyRepo.List(commonRepo.WithUUIDsIn(req.PolicyList))
@@ -63,8 +61,6 @@ func (u *StaffLogic) StaffUpdate(uuid string, req request.Staff) error {
 	staff.UUID = uuid
 	staff.StaffID = req.StaffID
 	staff.StaffName = req.StaffName
-	staff.Number = req.Number
-	staff.Email = req.Email
 	staff.Role = req.Role
 	if req.PolicyList != nil {
 		policies, err := policyRepo.List(commonRepo.WithUUIDsIn(req.PolicyList))
@@ -123,8 +119,6 @@ func (u *StaffLogic) StaffGet(uuid string) (response.Staff, error) {
 	resp.UUID = staff.UUID
 	resp.StaffID = staff.StaffID
 	resp.StaffName = staff.StaffName
-	resp.Number = staff.Number
-	resp.Email = staff.Email
 	resp.Role = staff.Role
 	resp.Policies = policies
 	return resp, nil
@@ -159,8 +153,6 @@ func (u *StaffLogic) StaffList() ([]response.Staff, error) {
 		staffres.UUID = staff.UUID
 		staffres.StaffID = staff.StaffID
 		staffres.StaffName = staff.StaffName
-		staffres.Number = staff.Number
-		staffres.Email = staff.Email
 		staffres.Role = staff.Role
 		staffres.Policies = policies
 		resp = append(resp, staffres)

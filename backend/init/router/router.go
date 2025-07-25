@@ -1,10 +1,12 @@
 package router
 
 import (
-	web "EvoBot"
-	"EvoBot/backend/global"
-	_router "EvoBot/backend/router"
-	"EvoBot/cmd/docs"
+	web "MKICS"
+	"MKICS/backend/global"
+	"MKICS/backend/init/zaplog"
+	_router "MKICS/backend/router"
+	"MKICS/backend/utils/validator"
+	"MKICS/cmd/docs"
 	"io/fs"
 	"net/http"
 	"os"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -69,9 +72,15 @@ func Init() *gin.Engine {
 	if global.CONF.LogConfig.Model != "dev" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	binding.Validator = validator.NewCustomValidator()
+
 	eng := gin.New()
-	eng.Use(gin.Recovery())
-	eng.Use(gin.Logger())
+	// eng.Use(gin.Recovery())
+	// eng.Use(gin.Logger())
+
+	eng.Use(zaplog.GinLogger())
+	eng.Use(zaplog.GinRecovery(true))
 
 	eng.NoRoute(func(ctx *gin.Context) {
 		if strings.HasPrefix(ctx.Request.URL.Path, "/ui/") {
@@ -81,7 +90,6 @@ func Init() *gin.Engine {
 		ctx.JSON(404, gin.H{"error": "not found"})
 	})
 
-	// swaggerRouter := r.Group("evobot").Use(middleware.AuthRequired())
 	docs.SwaggerInfo.BasePath = "/api/v1"
 	eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

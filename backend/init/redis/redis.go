@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"EvoBot/backend/global"
+	"MKICS/backend/global"
 	"context"
 	"fmt"
 	"time"

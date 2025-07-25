@@ -1,14 +1,14 @@
 package main
 
 import (
-	"EvoBot/cmd/cmd"
+	"MKICS/cmd/cmd"
 	"fmt"
 	"os"
 )
 
-// @title EvoBot
+// @title MKICS
 // @version 1.0
-// @description  evobot
+// @description  mkics
 // @termsOfService http://swagger.io/terms/
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html

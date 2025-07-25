@@ -38,11 +38,12 @@
               range-separator="至"
               start-placeholder="开始时间"
               end-placeholder="结束时间"
-              format="HH:mm:ss"
-              value-format="HH:mm:ss"
+              format="HH:mm"
+              value-format="HH:mm"
               @change="(val) => handleTimeChange(index, val)"
+              class="work-time-x"
             ></el-time-picker>
-            <el-button @click="removeWorkTime(index)" type="danger">删除</el-button>
+            <el-button @click="removeWorkTime(index)" type="danger"><el-icon><DeleteFilled /></el-icon></el-button>
           </div>
       </el-form-item>
     </el-form>
@@ -75,11 +76,11 @@ const formData = reactive<IPolicy>({
   max_count: 100,
   repeat: 1,
   week: '',
-  work_times: [{ start_time: '08:00:00', end_time: '18:00:00' }]
+  work_times: [{ start_time: '08:00', end_time: '18:00' }]
 })
 
 const tempTimeRanges = ref<[string, string][]>([
-  ['08:00:00', '18:00:00'] 
+  ['08:00', '18:00'] 
 ]);
 
 const handleTimeChange = (index: number, val: [string, string] | null) => {
@@ -176,3 +177,11 @@ onBeforeMount(() => {
   if (isEditing.value) policyInfo()
 })
 </script>
+<style lang="scss" scoped>
+.work-time{
+  width:70vw;
+  .work-time-x{
+    width:80%;
+  }
+}
+</style>

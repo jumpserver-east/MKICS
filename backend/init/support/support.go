@@ -1,8 +1,8 @@
 package support
 
 import (
-	"EvoBot/backend/global"
-	"EvoBot/backend/utils/support"
+	"MKICS/backend/global"
+	"MKICS/backend/utils/support"
 )
 
 func Init() {

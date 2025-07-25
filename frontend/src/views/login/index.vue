@@ -4,7 +4,7 @@
       <!-- LOGO -->
       <div class="logo-box">
         <!-- <img class="logo" src="@/assets/svg/logo.svg" alt="Logo" /> -->
-        <h1 class="logo-title">Evobot</h1>
+        <h1 class="logo-title">MKICS</h1>
       </div>
 
       <!-- 登录框 -->

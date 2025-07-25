@@ -1,6 +1,6 @@
 package request
 
-import "EvoBot/backend/app/dto"
+import "MKICS/backend/app/dto"
 
 type KF struct {
 	dto.KF

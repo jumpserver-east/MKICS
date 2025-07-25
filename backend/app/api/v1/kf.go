@@ -1,9 +1,8 @@
 package v1
 
 import (
-	"EvoBot/backend/app/api/v1/helper"
-	"EvoBot/backend/app/dto/request"
-	"EvoBot/backend/constant"
+	"MKICS/backend/app/dto/request"
+	"MKICS/backend/app/dto/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,44 +17,17 @@ import (
 // @Router /kf [post]
 func (u *BaseApi) KFAdd(ctx *gin.Context) {
 	var req request.KF
-	var kfurl string
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if req.KFID == "" || req.KFName == "" || req.KFPlatform == "" {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+
+	if err := kFLogic.KFAdd(req); err != nil {
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	switch req.KFPlatform {
-	case "wecom":
-		url, err := wecomLogic.AddContactWay(req.KFID)
-		if err != nil {
-			helper.ErrResponseWithErr(ctx, constant.CodeErrBadRequest, err)
-			return
-		}
-		kfurl = url
-		if req.StaffList != nil {
-			receptionistlist, err := wecomLogic.ReceptionistList(req.KFID)
-			if err != nil {
-				helper.ErrResponseWithErr(ctx, constant.CodeErrInternalServer, err)
-				return
-			}
-			if err := wecomLogic.CheckReceptionist(req.StaffList, receptionistlist); err != nil {
-				helper.ErrResponseWithErr(ctx, constant.CodeErrBadRequest, err)
-				return
-			}
-		}
-	default:
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
-		return
-	}
-	err := kFLogic.KFAdd(req)
-	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
-		return
-	}
-	helper.SuccessWithData(ctx, kfurl)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags kf
@@ -69,42 +41,19 @@ func (u *BaseApi) KFAdd(ctx *gin.Context) {
 // @Router /kf/{uuid} [patch]
 func (u *BaseApi) KFUpdate(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	var req request.KF
-	var kfurl string
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrBadRequest)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if req.KFID != "" {
-		switch req.KFPlatform {
-		case "wecom":
-			url, err := wecomLogic.AddContactWay(req.KFID)
-			if err != nil {
-				helper.ErrResponseWithErr(ctx, constant.CodeErrBadRequest, err)
-				return
-			}
-			kfurl = url
-			if req.StaffList != nil {
-				receptionistlist, err := wecomLogic.ReceptionistList(req.KFID)
-				if err != nil {
-					helper.ErrResponse(ctx, constant.CodeErrInternalServer)
-					return
-				}
-				if err := wecomLogic.CheckReceptionist(req.StaffList, receptionistlist); err != nil {
-					helper.ErrResponseWithErr(ctx, constant.CodeErrBadRequest, err)
-					return
-				}
-			}
-		default:
-			helper.ErrResponse(ctx, constant.CodeErrInternalServer)
-			return
-		}
-	}
+
 	if err := kFLogic.KFUpdate(uuid, req); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, kfurl)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags kf
@@ -117,11 +66,13 @@ func (u *BaseApi) KFUpdate(ctx *gin.Context) {
 // @Router /kf/{uuid} [delete]
 func (u *BaseApi) KFDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
+
 	if err := kFLogic.KFDel(uuid); err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithOutData(ctx)
+
+	response.SuccessWithMsg(ctx, "success")
 }
 
 // @Tags kf
@@ -134,12 +85,14 @@ func (u *BaseApi) KFDel(ctx *gin.Context) {
 // @Router /kf/{uuid} [get]
 func (u *BaseApi) KFGet(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
-	kf, err := kFLogic.KFGet(uuid)
+
+	data, err := kFLogic.KFGet(uuid)
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, kf)
+
+	response.SuccessWithData(ctx, data)
 }
 
 // @Tags kf
@@ -150,10 +103,11 @@ func (u *BaseApi) KFGet(ctx *gin.Context) {
 // @Success 200 {object} dto.Response
 // @Router /kf [get]
 func (u *BaseApi) KFList(ctx *gin.Context) {
-	kfs, err := kFLogic.KFList()
+	data, err := kFLogic.KFList()
 	if err != nil {
-		helper.ErrResponse(ctx, constant.CodeErrInternalServer)
+		response.InternalServerError(ctx, err.Error())
 		return
 	}
-	helper.SuccessWithData(ctx, kfs)
+
+	response.SuccessWithData(ctx, data)
 }

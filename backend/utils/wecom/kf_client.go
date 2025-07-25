@@ -1,7 +1,7 @@
 package wecom
 
 import (
-	"EvoBot/backend/utils/wecom/client"
+	"MKICS/backend/utils/wecom/client"
 )
 
 func NewWecomKFClient(conf client.WecomConfig) (*client.WecomKF, error) {

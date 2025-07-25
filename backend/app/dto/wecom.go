@@ -1,6 +1,6 @@
 package dto
 
-import wecomclient "EvoBot/backend/utils/wecom/client"
+import wecomclient "MKICS/backend/utils/wecom/client"
 
 type SignatureOptions struct {
 	wecomclient.SignatureOptions
