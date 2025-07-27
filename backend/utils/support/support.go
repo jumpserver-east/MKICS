@@ -37,7 +37,6 @@ func (auth *BearerTokenAuth) Sign(r *http.Request) error {
 
 func (c *Client) GetClients(marker int, max int) (ret model.PaginationResponse[[]model.Client], err error) {
 	_, err = c.client.Get(SupportClientsURL, &ret, map[string]string{
-		"region": "eastern",
 		"simple": "false",
 		"marker": strconv.Itoa(marker),
 		"max":    strconv.Itoa(max),
@@ -48,7 +47,6 @@ func (c *Client) GetClients(marker int, max int) (ret model.PaginationResponse[[
 func (c *Client) GetMaintenances(marker int, max int) (ret model.PaginationResponse[[]model.Maintenance], err error) {
 	_, err = c.client.Get(SupportMaintenancesURL, &ret, map[string]string{
 		"product": "JumpServer",
-		"region":  "eastern",
 		"marker":  strconv.Itoa(marker),
 		"max":     strconv.Itoa(max),
 	})
@@ -57,7 +55,6 @@ func (c *Client) GetMaintenances(marker int, max int) (ret model.PaginationRespo
 
 func (c *Client) GetMaintenanceRecords(marker int, max int) (ret model.PaginationResponse[[]model.MaintenanceRecord], err error) {
 	_, err = c.client.Get(SupportMaintenanceRecordsURL, &ret, map[string]string{
-		"region": "eastern",
 		"simple": "false",
 		"marker": strconv.Itoa(marker),
 		"max":    strconv.Itoa(max),
@@ -68,7 +65,6 @@ func (c *Client) GetMaintenanceRecords(marker int, max int) (ret model.Paginatio
 func (c *Client) GetSubscriptionsWithQuickSearch(marker int, max int, quickSearch string) (ret model.PaginationResponse[[]model.Subscription], err error) {
 	_, err = c.client.Get(SupportSubscriptionsURL, &ret, map[string]string{
 		"product":          "JumpServer",
-		"region":           "eastern",
 		"subscriptionType": "enterprise",
 		"simple":           "false",
 		"quickSearch":      quickSearch,
