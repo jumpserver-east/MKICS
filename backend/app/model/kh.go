@@ -2,11 +2,10 @@ package model
 
 type KH struct {
 	BaseModel
-	KHID         string     `gorm:"uniqueIndex;column:khid;type:varchar(255);not null;" json:"khid"`
-	StaffID      string     `gorm:"column:staffid;type:varchar(255);" json:"staffid"`
-	SceneParam   string     `gorm:"column:scence_param;type:varchar(32);" json:"scence_param"`
-	VerifyStatus int        `gorm:"column:verify_status;type:int;not null;default:1;comment:'验证状态 1: 未处理 2: 角色确认 3：验证 4: 用户信息确认';" json:"verify_status"`
-	ChatList     []ChatList `gorm:"foreignKey:KHID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	KHID       string     `gorm:"uniqueIndex;column:khid;type:varchar(255);not null;" json:"khid"`
+	StaffID    string     `gorm:"column:staffid;type:varchar(255);" json:"staffid"`
+	SceneParam string     `gorm:"column:scence_param;type:varchar(32);" json:"scence_param"`
+	ChatList   []ChatList `gorm:"foreignKey:KHID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 type ChatList struct {

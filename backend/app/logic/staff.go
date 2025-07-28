@@ -28,7 +28,6 @@ func (u *StaffLogic) StaffAdd(req request.Staff) error {
 	staff := model.Staff{
 		StaffID:   req.StaffID,
 		StaffName: req.StaffName,
-		Role:      req.Role,
 	}
 	policies, err := policyRepo.List(commonRepo.WithUUIDsIn(req.PolicyList))
 	if err != nil {
@@ -61,7 +60,6 @@ func (u *StaffLogic) StaffUpdate(uuid string, req request.Staff) error {
 	staff.UUID = uuid
 	staff.StaffID = req.StaffID
 	staff.StaffName = req.StaffName
-	staff.Role = req.Role
 	if req.PolicyList != nil {
 		policies, err := policyRepo.List(commonRepo.WithUUIDsIn(req.PolicyList))
 		if err != nil {
@@ -119,7 +117,6 @@ func (u *StaffLogic) StaffGet(uuid string) (response.Staff, error) {
 	resp.UUID = staff.UUID
 	resp.StaffID = staff.StaffID
 	resp.StaffName = staff.StaffName
-	resp.Role = staff.Role
 	resp.Policies = policies
 	return resp, nil
 }
@@ -153,7 +150,6 @@ func (u *StaffLogic) StaffList() ([]response.Staff, error) {
 		staffres.UUID = staff.UUID
 		staffres.StaffID = staff.StaffID
 		staffres.StaffName = staff.StaffName
-		staffres.Role = staff.Role
 		staffres.Policies = policies
 		resp = append(resp, staffres)
 	}

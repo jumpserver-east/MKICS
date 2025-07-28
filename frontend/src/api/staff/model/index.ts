@@ -4,7 +4,6 @@ export interface IStaff {
     uuid: string;
     staffname?: string;
     staffid?: string;
-    role?: string;
     policy_list?: string[];
     policies?: Array<IPolicy>;
 }
