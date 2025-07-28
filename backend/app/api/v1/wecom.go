@@ -19,7 +19,7 @@ import (
 func (b *BaseApi) WecomConfigList(ctx *gin.Context) {
 	data, err := wecomLogic.ConfigList()
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -38,7 +38,7 @@ func (b *BaseApi) WecomConfigGet(ctx *gin.Context) {
 
 	data, err := wecomLogic.ConfigGet(uuid)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -58,12 +58,12 @@ func (b *BaseApi) WecomConfigUpdate(ctx *gin.Context) {
 
 	var req request.WecomConfigApp
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := wecomLogic.ConfigUpdate(uuid, req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -85,13 +85,13 @@ func (b *BaseApi) WecomHandle(ctx *gin.Context) {
 	if ctx.Request.Method == http.MethodGet {
 		var options dto.SignatureOptions
 		if err := ctx.ShouldBindQuery(&options); err != nil {
-			response.BadRequest(ctx, err.Error())
+			response.BadRequest(ctx, err)
 			return
 		}
 
 		echo, err := wecomLogic.VerifyURL(options)
 		if err != nil {
-			response.InternalServerError(ctx, err.Error())
+			response.InternalServerError(ctx, err)
 			return
 		}
 
@@ -102,7 +102,7 @@ func (b *BaseApi) WecomHandle(ctx *gin.Context) {
 
 	body, err := ctx.GetRawData()
 	if err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
@@ -124,12 +124,12 @@ func (b *BaseApi) WecomReceptionistAdd(ctx *gin.Context) {
 
 	var req request.ReceptionistOptions
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := wecomLogic.ReceptionistAdd(kfid, req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -149,12 +149,12 @@ func (b *BaseApi) WecomReceptionistDel(ctx *gin.Context) {
 
 	var req request.ReceptionistOptions
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := wecomLogic.ReceptionistDel(kfid, req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -173,7 +173,7 @@ func (b *BaseApi) WecomReceptionistList(ctx *gin.Context) {
 
 	data, err := wecomLogic.ReceptionistList(kfid)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -190,7 +190,7 @@ func (b *BaseApi) WecomReceptionistList(ctx *gin.Context) {
 func (b *BaseApi) WecomAccountList(ctx *gin.Context) {
 	data, err := wecomLogic.AccountList()
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -209,7 +209,7 @@ func (b *BaseApi) WecomAddContactWay(ctx *gin.Context) {
 
 	data, err := wecomLogic.AddContactWay(kfid)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 

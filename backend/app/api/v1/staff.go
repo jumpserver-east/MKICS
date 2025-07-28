@@ -18,13 +18,13 @@ import (
 func (u *BaseApi) StaffAdd(ctx *gin.Context) {
 	var req request.Staff
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	err := staffLogic.StaffAdd(req)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -45,12 +45,12 @@ func (u *BaseApi) StaffUpdate(ctx *gin.Context) {
 
 	var req request.Staff
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := staffLogic.StaffUpdate(uuid, req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -69,7 +69,7 @@ func (u *BaseApi) StaffDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 
 	if err := staffLogic.StaffDel(uuid); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (u *BaseApi) StaffGet(ctx *gin.Context) {
 
 	data, err := staffLogic.StaffGet(uuid)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (u *BaseApi) StaffGet(ctx *gin.Context) {
 func (u *BaseApi) StaffList(ctx *gin.Context) {
 	data, err := staffLogic.StaffList()
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 

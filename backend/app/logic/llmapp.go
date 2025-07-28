@@ -87,7 +87,7 @@ func (u *LLMAppLogic) ChatMessage(khid, uuid, message string) (string, error) {
 		}
 	}
 
-	fullContent, err := client.ChatMessage(message, targetChatID)
+	fullContent, err := client.ChatMessage(message, targetChatID, khinfo.SceneParam)
 	if err != nil {
 		return "", err
 	}

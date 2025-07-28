@@ -20,17 +20,17 @@ type BaseApi struct{}
 func (b *BaseApi) Login(ctx *gin.Context) {
 	var req request.Login
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
-	tokens, err := authLogic.Login(ctx, req)
+	token, err := authLogic.Login(ctx, req)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
-	response.SuccessWithData(ctx, tokens)
+	response.SuccessWithData(ctx, token)
 }
 
 // @Tags auth
@@ -40,11 +40,15 @@ func (b *BaseApi) Login(ctx *gin.Context) {
 // @Success 200 {object} dto.Response
 // @Router /auth/logout [post]
 func (b *BaseApi) Logout(ctx *gin.Context) {
-	token := ctx.GetHeader(constant.TokenKey)
+	_, exists := ctx.Get(constant.UserKey)
+	if !exists {
+		response.Unauthorized(ctx, constant.ErrUnauthorizedOrNotLoggedIn)
+		return
+	}
 
-	err := authLogic.Logout(ctx, token)
+	err := authLogic.Logout(ctx)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 

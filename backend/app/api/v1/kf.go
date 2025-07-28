@@ -18,12 +18,12 @@ import (
 func (u *BaseApi) KFAdd(ctx *gin.Context) {
 	var req request.KF
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := kFLogic.KFAdd(req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -44,12 +44,12 @@ func (u *BaseApi) KFUpdate(ctx *gin.Context) {
 
 	var req request.KF
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := kFLogic.KFUpdate(uuid, req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func (u *BaseApi) KFDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 
 	if err := kFLogic.KFDel(uuid); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (u *BaseApi) KFGet(ctx *gin.Context) {
 
 	data, err := kFLogic.KFGet(uuid)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (u *BaseApi) KFGet(ctx *gin.Context) {
 func (u *BaseApi) KFList(ctx *gin.Context) {
 	data, err := kFLogic.KFList()
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 

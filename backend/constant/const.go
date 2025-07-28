@@ -1,10 +1,14 @@
 package constant
 
 const (
-	TokenKey = "Authorization"
+	AuthHeaderKey          = "Authorization"
+	AuthHeaderPrefixBearer = "Bearer "
+	AuthHeaderPrefixBasic  = "Basic "
+	AuthHeaderPrefixApiKey = "ApiKey "
 
-	KeyUserTokenPrefix = "MKICS:user:token:"
-	KeyPostTimeZSet    = "MKICS:post:time"
+	UserKey = "User"
+
+	KeyUserTokenPrefix = "MKICS:user:token"
 
 	KeyStaffWeightPrefix   = "MKICS:staff:weight:"
 	KeyWecomKFStaffPrefix  = "wecom:kf:staff:"

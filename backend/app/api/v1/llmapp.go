@@ -19,7 +19,7 @@ func (u *BaseApi) LLMAppConfigGet(ctx *gin.Context) {
 
 	data, err := llmappLogic.ConfigGet(uuid)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -37,12 +37,12 @@ func (u *BaseApi) LLMAppConfigGet(ctx *gin.Context) {
 func (u *BaseApi) LLMAppConfigAdd(ctx *gin.Context) {
 	var req dto.LLMAppConfig
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := llmappLogic.ConfigAdd(req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (u *BaseApi) LLMAppConfigDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 
 	if err := llmappLogic.ConfigDel(uuid); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -82,12 +82,12 @@ func (b *BaseApi) LLMAppConfigUpdate(ctx *gin.Context) {
 
 	var req dto.LLMAppConfig
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := llmappLogic.ConfigUpdate(uuid, req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (b *BaseApi) LLMAppConfigUpdate(ctx *gin.Context) {
 func (b *BaseApi) LLMAppConfigList(ctx *gin.Context) {
 	data, err := llmappLogic.ConfigList()
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 

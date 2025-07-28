@@ -11,13 +11,6 @@
                 <el-input v-model="formData.staffid" placeholder="请输入接待人员 ID" />
             </el-form-item>
 
-            <!-- 角色 -->
-            <el-form-item label="角色" prop="role">
-                <el-select v-model="formData.role" placeholder="请选择角色">
-                    <el-option v-for="item in roleoptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-            </el-form-item>
-
             <!-- 策略列表 -->
             <el-form-item label="工作策略列表" prop="policy_list">
                 <el-select v-model="formData.policy_list" multiple placeholder="请选择工作策略" :options="policyOptions">
@@ -42,17 +35,6 @@ import type { IStaff } from '@/api/staff/model';
 import type { TLoading } from '@/types';
 import type { FormInstance, FormRules } from 'element-plus';
 
-const roleoptions = [
-  {
-    value: '售前',
-    label: '售前',
-  },
-  {
-    value: '售后',
-    label: '售后',
-  },
-]
-
 // 路由实例
 const route = useRoute();
 const router = useRouter();
@@ -68,7 +50,6 @@ const formData = reactive<IStaff>({
     uuid:'',
     staffname: '',
     staffid: '',
-    role:'',
     policy_list: [], // 存储工作 UUID 列表
 });
 
@@ -76,7 +57,6 @@ const formData = reactive<IStaff>({
 const formRules = reactive<FormRules>({
     staffname: [{ required: true, message: '请输入接待人员名称', trigger: 'blur' }],
     staffid: [{ required: true, message: '请输入接待人员 ID', trigger: 'blur' }],
-    role: [{ required: true, message: '请输入角色', trigger: 'blur' }],
     policy_list: [
         {
             required: true,

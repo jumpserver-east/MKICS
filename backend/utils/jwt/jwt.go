@@ -1,74 +1,74 @@
 package jwt
 
 import (
+	"MKICS/backend/constant"
 	"MKICS/backend/global"
-	"errors"
 	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
 
-type CustomClaims struct {
+var jwtSecret string
+var secretOnce sync.Once
+
+type Claims struct {
 	UUID string `json:"uuid"`
 	jwt.RegisteredClaims
 }
 
-var secret string
-var secretOnce sync.Once
+func (c Claims) Valid() error {
+	if c.UUID == "" {
+		return constant.ErrUUIDIsEmpty
+	}
+	return c.RegisteredClaims.Valid()
+}
 
 func initSecret() {
 	authConfig := global.CONF.AuthConfig
-	if authConfig == nil {
-		global.ZAPLOG.Error("auth config is nil")
+	if authConfig.Secret == "" {
+		global.ZAPLOG.Error("secret config is empty")
 		return
 	}
-	secret = authConfig.Secret
+	jwtSecret = authConfig.Secret
 }
 
 func getSecret() []byte {
 	secretOnce.Do(initSecret)
-	return []byte(secret)
+	return []byte(jwtSecret)
 }
 
-func generateToken(uuid string, expire time.Duration) (string, error) {
-	mySigningKey := getSecret()
-	claims := CustomClaims{
+func GenerateToken(uuid string) (jwtTokenString string, err error) {
+	jwtExpire := global.CONF.AuthConfig.JwtExpired
+
+	claims := Claims{
 		UUID: uuid,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expire)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(jwtExpire)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "MKICS",
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(mySigningKey)
+
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	jwtSecret := getSecret()
+
+	return jwtToken.SignedString(jwtSecret)
+}
+
+func ParseToken(jwtTokenString string) (claims *Claims, err error) {
+	jwtSecret := getSecret()
+
+	jwtToken, err := jwt.ParseWithClaims(jwtTokenString, &Claims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return jwtSecret, nil
+		})
 	if err != nil {
-		return "", err
+		return
 	}
-	return tokenString, nil
-}
 
-func AccessToken(uuid string) (string, error) {
-	expireDuration := global.CONF.AuthConfig.JwtExpired
-	if expireDuration <= 0 {
-		expireDuration = 2 * time.Hour
-	}
-	return generateToken(uuid, expireDuration)
-}
+	claims = jwtToken.Claims.(*Claims)
 
-func VerifyToken(tokenString string) (*CustomClaims, error) {
-	mySigningKey := getSecret()
-	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return mySigningKey, nil
-	})
-	if err != nil || token == nil {
-		return nil, errors.New("token parse error")
-	}
-	claims, ok := token.Claims.(*CustomClaims)
-	if !ok || !token.Valid {
-		return nil, errors.New("token parse error")
-	}
-	return claims, nil
+	return
 }
