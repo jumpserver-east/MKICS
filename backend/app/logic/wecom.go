@@ -871,8 +871,17 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 			return err
 		}
 		if Info.MsgCode != "" {
+			var decodedSceneParam string
+			kHinfo, err := kHRepo.Get(kHRepo.WithKHID(serviceStateTransOptions.ExternalUserID))
+			if err != nil {
+				return err
+			}
+			decodedSceneParam = kHinfo.SceneParam
+			staffWelcomeMsg := injectVariables(kFInfo.StaffWelcomeMsg, map[string]string{
+				"scene_param": decodedSceneParam,
+			})
 			if err = u.wecomkf.SendTextMsgOnEvent(wecomclient.SendTextMsgOnEventOptions{
-				Message:    kFInfo.StaffWelcomeMsg,
+				Message:    staffWelcomeMsg,
 				Credential: Info.MsgCode,
 			}); err != nil {
 				return err
