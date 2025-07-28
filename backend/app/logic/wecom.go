@@ -758,7 +758,22 @@ func (u *WecomLogic) handleEnterSessionEvent(enterSessionEvent wecomclient.Enter
 	if err != nil {
 		return err
 	}
-	decodedSceneParam, err := url.QueryUnescape(enterSessionEvent.Event.SceneParam)
+	var decodedSceneParam string
+	if enterSessionEvent.Event.SceneParam != "" {
+		decodedSceneParam, err = url.QueryUnescape(enterSessionEvent.Event.SceneParam)
+		if err != nil {
+			return
+		}
+		err = kHRepo.UpdatebyKHID(model.KH{KHID: enterSessionEvent.ExternalUserID, SceneParam: decodedSceneParam})
+		if err != nil {
+			return
+		}
+	}
+	kHinfo, err := kHRepo.Get(kHRepo.WithKHID(enterSessionEvent.ExternalUserID))
+	if err != nil {
+		return err
+	}
+	decodedSceneParam = kHinfo.SceneParam
 	botWelcomeMsg := injectVariables(kFInfo.BotWelcomeMsg, map[string]string{
 		"scene_param": decodedSceneParam,
 	})
