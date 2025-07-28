@@ -390,6 +390,15 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 	if err != nil {
 		return
 	}
+	var decodedSceneParam string
+	kHinfo, err := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
+	if err != nil {
+		return err
+	}
+	decodedSceneParam = kHinfo.SceneParam
+	botWelcomeMsg := injectVariables(kFInfo.BotWelcomeMsg, map[string]string{
+		"scene_param": decodedSceneParam,
+	})
 	switch kFInfo.Status {
 	case constant.KFStatusRobotToHuman:
 		switch {
@@ -425,7 +434,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 					OpenKfid: textMessage.OpenKFID,
 					Touser:   textMessage.ExternalUserID,
 				},
-				MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+				MenuMsgOptions: parseMenuText(botWelcomeMsg),
 			})
 			return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
 		}
@@ -480,7 +489,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 						OpenKfid: textMessage.OpenKFID,
 						Touser:   textMessage.ExternalUserID,
 					},
-					MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+					MenuMsgOptions: parseMenuText(botWelcomeMsg),
 				})
 				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
 			}
@@ -501,7 +510,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 							OpenKfid: textMessage.OpenKFID,
 							Touser:   textMessage.ExternalUserID,
 						},
-						MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+						MenuMsgOptions: parseMenuText(botWelcomeMsg),
 					})
 					return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
 				}
@@ -583,7 +592,7 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 						OpenKfid: textMessage.OpenKFID,
 						Touser:   textMessage.ExternalUserID,
 					},
-					MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+					MenuMsgOptions: parseMenuText(botWelcomeMsg),
 				})
 				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
 			default:

@@ -54,7 +54,7 @@ require (
 )
 
 require (
-	github.com/Ewall555/MaxKB-golang-sdk v1.0.3
+	github.com/Ewall555/MaxKB-golang-sdk v1.0.4
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect

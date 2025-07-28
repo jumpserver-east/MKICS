@@ -33,11 +33,15 @@ type StreamCallback struct {
 	StreamCallback func(*mkresp.Chat_messagePostStreamResponse)
 }
 
-func (c *MaxKB) ChatMessage(message string, chatid *string) (string, error) {
+func (c *MaxKB) ChatMessage(message string, chatid *string, asker string) (string, error) {
+	formData := map[string]interface{}{
+		"asker": asker,
+	}
 	req := mkreq.Chat_messagePostRequest{
-		Message: message,
-		ReChat:  false,
-		Stream:  false,
+		Message:  message,
+		ReChat:   false,
+		Stream:   false,
+		FormData: formData,
 	}
 	resp, err := c.ApplicationChat.Chat_messageByChat_id(req, chatid, nil)
 	if err != nil {

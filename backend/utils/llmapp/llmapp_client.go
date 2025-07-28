@@ -7,7 +7,7 @@ import (
 )
 
 type LLMAppClient interface {
-	ChatMessage(message string, chatid *string) (string, error)
+	ChatMessage(message string, chatid *string, asker string) (string, error)
 	ChatOpen() (*string, error)
 }
 

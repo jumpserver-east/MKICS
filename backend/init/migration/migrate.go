@@ -20,6 +20,7 @@ func Init() {
 		migrations.AddTableStaff,
 		migrations.AddTableKFStaff,
 		migrations.AddTableStaffPolicy,
+		migrations.UpdateTableKH,
 	})
 	if err := m.Migrate(); err != nil {
 		panic(err)
