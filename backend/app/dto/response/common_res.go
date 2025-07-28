@@ -42,20 +42,20 @@ func ErrorWithDetail(ctx *gin.Context, code int, msg string) {
 	ctx.Abort()
 }
 
-func InternalServerError(ctx *gin.Context, msg string) {
-	ErrorWithDetail(ctx, http.StatusInternalServerError, msg)
+func InternalServerError(ctx *gin.Context, err error) {
+	ErrorWithDetail(ctx, http.StatusInternalServerError, err.Error())
 }
 
-func BadRequest(ctx *gin.Context, msg string) {
-	ErrorWithDetail(ctx, http.StatusBadRequest, msg)
+func BadRequest(ctx *gin.Context, err error) {
+	ErrorWithDetail(ctx, http.StatusBadRequest, err.Error())
 }
 
-func Unauthorized(ctx *gin.Context, msg string) {
-	ErrorWithDetail(ctx, http.StatusUnauthorized, msg)
+func Unauthorized(ctx *gin.Context, err error) {
+	ErrorWithDetail(ctx, http.StatusUnauthorized, err.Error())
 }
 
-func NotFound(ctx *gin.Context, msg string) {
-	ErrorWithDetail(ctx, http.StatusNotFound, msg)
+func NotFound(ctx *gin.Context, err error) {
+	ErrorWithDetail(ctx, http.StatusNotFound, err.Error())
 }
 
 func ResponseWithCode(ctx *gin.Context, code int) {

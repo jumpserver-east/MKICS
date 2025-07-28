@@ -18,12 +18,12 @@ import (
 func (u *BaseApi) PolicyAdd(ctx *gin.Context) {
 	var req dto.Policy
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := policyLogic.PolicyAdd(req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -44,12 +44,12 @@ func (u *BaseApi) PolicyUpdate(ctx *gin.Context) {
 
 	var req dto.Policy
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, err)
 		return
 	}
 
 	if err := policyLogic.PolicyUpdate(uuid, req); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func (u *BaseApi) PolicyDel(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 
 	if err := policyLogic.PolicyDel(uuid); err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (u *BaseApi) PolicyGet(ctx *gin.Context) {
 
 	data, err := policyLogic.PolicyGet(uuid)
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (u *BaseApi) PolicyGet(ctx *gin.Context) {
 func (u *BaseApi) PolicyList(ctx *gin.Context) {
 	data, err := policyLogic.PolicyList()
 	if err != nil {
-		response.InternalServerError(ctx, err.Error())
+		response.InternalServerError(ctx, err)
 		return
 	}
 

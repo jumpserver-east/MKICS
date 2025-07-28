@@ -153,12 +153,12 @@ func (u *WecomLogic) CallbackHandler(encryptedMsg []byte) (err error) {
 func (u *WecomLogic) SyncMsg(options wecomclient.SyncMsgOptions) (err error) {
 	ctx := context.Background()
 	wecomCursorLockKey := wecomclient.KeyWecomCursorLockPrefix + options.OpenKfID
-	wecomCursorLockVal, ok := utils.AcquireRedisLockWithRetry(ctx, global.RDS, wecomCursorLockKey, 30*time.Second, 500*time.Millisecond, 30*time.Second)
+	wecomCursorLockVal, ok := utils.AcquireRedisLockWithRetry(ctx, wecomCursorLockKey, 30*time.Second, 500*time.Millisecond, 30*time.Second)
 	if !ok {
 		global.ZAPLOG.Warn("无法获取同步锁，跳过本轮")
 		return nil
 	}
-	defer utils.ReleaseRedisLock(ctx, global.RDS, wecomCursorLockKey, wecomCursorLockVal)
+	defer utils.ReleaseRedisLock(ctx, wecomCursorLockKey, wecomCursorLockVal)
 
 	wecomCursorKey := wecomclient.KeyWecomCursorPrefix + options.OpenKfID
 	options.Cursor, err = global.RDS.Get(ctx, wecomCursorKey).Result()

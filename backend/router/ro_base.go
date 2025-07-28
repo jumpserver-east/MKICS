@@ -2,6 +2,7 @@ package router
 
 import (
 	v1 "MKICS/backend/app/api/v1"
+	"MKICS/backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +14,7 @@ func (s *BaseRouter) InitRouter(Router *gin.RouterGroup) {
 	baseApi := v1.ApiGroupApp.BaseApi
 	{
 		baseRouter.POST("/login", baseApi.Login)
-		baseRouter.POST("/logout", baseApi.Logout)
+		baseRouter.Use(middleware.AuthRequired()).
+			POST("/logout", baseApi.Logout)
 	}
 }

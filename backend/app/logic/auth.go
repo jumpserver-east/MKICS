@@ -5,12 +5,10 @@ import (
 	"MKICS/backend/app/dto/response"
 	"MKICS/backend/constant"
 	"MKICS/backend/global"
+	"MKICS/backend/middleware"
 	"MKICS/backend/utils/jwt"
 	"MKICS/backend/utils/passwd"
-	"context"
-	"errors"
-	"strings"
-	"time"
+	"MKICS/backend/utils/redis"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,54 +16,51 @@ import (
 type AuthLogic struct{}
 
 type IAuthLogic interface {
-	Login(c *gin.Context, req request.Login) (*response.Tokens, error)
-	Logout(c *gin.Context, token string) error
+	Login(ctx *gin.Context, req request.Login) (token *response.Token, err error)
+	Logout(ctx *gin.Context) (err error)
 }
 
 func NewIAuthLogic() IAuthLogic {
 	return &AuthLogic{}
 }
 
-func (u *AuthLogic) Login(c *gin.Context, req request.Login) (*response.Tokens, error) {
+func (u *AuthLogic) Login(ctx *gin.Context, req request.Login) (token *response.Token, err error) {
+	token = &response.Token{}
+
 	user, err := authRepo.Get(authRepo.WithByUsername(req.Username))
 	if err != nil {
-		return nil, err
+		return
 	}
+
 	if !passwd.Verify(req.Password, user.Password) {
-		return nil, errors.New("login failed")
+		return nil, constant.ErrLoginFailed
 	}
-	accessToken, err := jwt.AccessToken(user.UUID)
+
+	jwtTokenString, err := jwt.GenerateToken(user.UUID)
 	if err != nil {
 		global.ZAPLOG.Error(err.Error())
-		return nil, err
+		return
 	}
-	redisKey := constant.KeyUserTokenPrefix + user.UUID + ":" + c.RemoteIP()
-	expireDuration := global.CONF.AuthConfig.JwtExpired
-	if expireDuration <= 0 {
-		expireDuration = 2 * time.Hour
-	}
-	err = global.RDS.Set(context.Background(), redisKey, accessToken, expireDuration).Err()
+
+	err = redis.SetToken(user.UUID, ctx.ClientIP(), jwtTokenString)
 	if err != nil {
 		global.ZAPLOG.Error(err.Error())
-		return nil, err
+		return
 	}
-	return &response.Tokens{
-		AccessToken: accessToken,
-	}, nil
+
+	token.AccessToken = jwtTokenString
+
+	return
 }
 
-func (u *AuthLogic) Logout(c *gin.Context, token string) error {
-	parts := strings.SplitN(token, " ", 2)
-	claims, err := jwt.VerifyToken(parts[1])
+func (u *AuthLogic) Logout(ctx *gin.Context) (err error) {
+	user := ctx.MustGet(constant.UserKey).(*middleware.CtxUser)
+
+	err = redis.DelToken(user.UUID, user.IP)
 	if err != nil {
 		global.ZAPLOG.Error(err.Error())
-		return err
+		return
 	}
-	redisKey := constant.KeyUserTokenPrefix + claims.UUID + ":" + c.RemoteIP()
-	err = global.RDS.Del(context.Background(), redisKey).Err()
-	if err != nil {
-		global.ZAPLOG.Error(err.Error())
-		return err
-	}
-	return nil
+
+	return
 }
