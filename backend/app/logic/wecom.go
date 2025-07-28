@@ -11,6 +11,7 @@ import (
 	"MKICS/backend/utils/wecom"
 	wecomclient "MKICS/backend/utils/wecom/client"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"context"
@@ -757,13 +758,17 @@ func (u *WecomLogic) handleEnterSessionEvent(enterSessionEvent wecomclient.Enter
 	if err != nil {
 		return err
 	}
+	decodedSceneParam, err := url.QueryUnescape(enterSessionEvent.Event.SceneParam)
+	botWelcomeMsg := injectVariables(kFInfo.BotWelcomeMsg, map[string]string{
+		"scene_param": decodedSceneParam,
+	})
 	if serviceStateInfo.ServiceState == wecomclient.SessionStatusHandled {
 		return u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
 			BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
 				OpenKfid: enterSessionEvent.OpenKFID,
 				Touser:   enterSessionEvent.ExternalUserID,
 			},
-			MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+			MenuMsgOptions: parseMenuText(botWelcomeMsg),
 		})
 	}
 	if enterSessionEvent.Event.WelcomeCode == "" {
@@ -771,7 +776,7 @@ func (u *WecomLogic) handleEnterSessionEvent(enterSessionEvent wecomclient.Enter
 	}
 	return u.wecomkf.SendMenuMsgOnEvent(wecomclient.SendMenuMsgOnEventOptions{
 		Credential:     enterSessionEvent.Event.WelcomeCode,
-		MenuMsgOptions: parseMenuText(kFInfo.BotWelcomeMsg),
+		MenuMsgOptions: parseMenuText(botWelcomeMsg),
 	})
 }
 
@@ -1100,4 +1105,11 @@ func parseMenuText(text string) wecomclient.MenuMsgOptions {
 		resp.List = menuList
 	}
 	return resp
+}
+
+func injectVariables(template string, vars map[string]string) string {
+	for key, value := range vars {
+		template = strings.ReplaceAll(template, "${"+key+"}", value)
+	}
+	return template
 }

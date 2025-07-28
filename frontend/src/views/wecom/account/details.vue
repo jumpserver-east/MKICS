@@ -105,7 +105,7 @@ const fetchAddContactWayUrl = async () => {
     try {
         const response = await getAccountAddContactWayApi(kfid);
         const url = new URL(response.data);
-        addContactWayUrl.value = url.origin + url.pathname;
+        addContactWayUrl.value = url;
     } catch (error) {
     }
 }
