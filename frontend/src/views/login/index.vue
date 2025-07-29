@@ -97,6 +97,7 @@ const loginFun = () => {
       if (access_token) {
         setToken(access_token)
       }
+      ElMessage.Success(res.message)
       router.push('/home')
     } catch (error) {
       console.error('error:', error);
