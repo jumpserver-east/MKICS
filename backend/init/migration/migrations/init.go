@@ -3,7 +3,7 @@ package migrations
 import (
 	"MKICS/backend/app/model"
 	"MKICS/backend/global"
-	"MKICS/backend/utils/passwd"
+	"MKICS/backend/utils/bcrypt"
 
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
@@ -17,7 +17,7 @@ var AddTableUser = &gormigrate.Migration{
 		}
 		if err := tx.Create(&model.User{
 			Username: global.CONF.SystemConfig.Username,
-			Password: passwd.Encode(global.CONF.SystemConfig.Password),
+			Password: bcrypt.Encode(global.CONF.SystemConfig.Password),
 		}).Error; err != nil {
 			return err
 		}

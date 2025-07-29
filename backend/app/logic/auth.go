@@ -6,8 +6,8 @@ import (
 	"MKICS/backend/constant"
 	"MKICS/backend/global"
 	"MKICS/backend/middleware"
+	"MKICS/backend/utils/bcrypt"
 	"MKICS/backend/utils/jwt"
-	"MKICS/backend/utils/passwd"
 	"MKICS/backend/utils/redis"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +32,7 @@ func (u *AuthLogic) Login(ctx *gin.Context, req request.Login) (token *response.
 		return
 	}
 
-	if !passwd.Verify(req.Password, user.Password) {
+	if !bcrypt.Verify(req.Password, user.Password) {
 		return nil, constant.ErrLoginFailed
 	}
 
