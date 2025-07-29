@@ -47,9 +47,9 @@ class RequestHttp {
         if (response) {
           if (response.status === 401) {
             clearLocal()
-            window.location.href = '/login'
-          } else if (response.message) {
-            showMessage(response.message || response.status)
+            window.location.href = '/'
+          } else if (response.data.message) {
+            showMessage(response.data.message || response.status)
           }
         }
         return Promise.reject(error)
