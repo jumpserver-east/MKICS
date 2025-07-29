@@ -1,4 +1,4 @@
-package passwd
+package bcrypt
 
 import (
 	"golang.org/x/crypto/bcrypt"

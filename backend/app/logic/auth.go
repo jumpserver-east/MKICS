@@ -6,8 +6,9 @@ import (
 	"MKICS/backend/constant"
 	"MKICS/backend/global"
 	"MKICS/backend/middleware"
+	"MKICS/backend/utils/bcrypt"
+	"MKICS/backend/utils/encrypt"
 	"MKICS/backend/utils/jwt"
-	"MKICS/backend/utils/passwd"
 	"MKICS/backend/utils/redis"
 
 	"github.com/gin-gonic/gin"
@@ -27,24 +28,37 @@ func NewIAuthLogic() IAuthLogic {
 func (u *AuthLogic) Login(ctx *gin.Context, req request.Login) (token *response.Token, err error) {
 	token = &response.Token{}
 
-	user, err := authRepo.Get(authRepo.WithByUsername(req.Username))
+	privateKey, err := global.RDS.Get(ctx, constant.PrivateKeyCacheKey).Result()
 	if err != nil {
+		global.ZAPLOG.Debug(err.Error())
 		return
 	}
 
-	if !passwd.Verify(req.Password, user.Password) {
+	plainPassword, err := encrypt.DecryptPassword(req.Password, privateKey)
+	if err != nil {
+		global.ZAPLOG.Debug(err.Error())
+		return
+	}
+
+	user, err := authRepo.Get(authRepo.WithByUsername(req.Username))
+	if err != nil {
+		global.ZAPLOG.Debug(err.Error())
+		return nil, constant.ErrLoginFailed
+	}
+
+	if !bcrypt.Verify(plainPassword, user.Password) {
 		return nil, constant.ErrLoginFailed
 	}
 
 	jwtTokenString, err := jwt.GenerateToken(user.UUID)
 	if err != nil {
-		global.ZAPLOG.Error(err.Error())
+		global.ZAPLOG.Debug(err.Error())
 		return
 	}
 
 	err = redis.SetToken(user.UUID, ctx.ClientIP(), jwtTokenString)
 	if err != nil {
-		global.ZAPLOG.Error(err.Error())
+		global.ZAPLOG.Debug(err.Error())
 		return
 	}
 

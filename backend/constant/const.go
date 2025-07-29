@@ -5,6 +5,9 @@ const (
 	AuthHeaderPrefixBearer = "Bearer "
 	AuthHeaderPrefixBasic  = "Basic "
 	AuthHeaderPrefixApiKey = "ApiKey "
+	PublicKeyCacheKey      = "MKICS:user:login:rsa_public_key"
+	PrivateKeyCacheKey     = "MKICS:user:login:rsa_private_key"
+	PublicKeyCookieKey     = "mkics_public_key"
 
 	UserKey = "User"
 

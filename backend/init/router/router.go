@@ -4,6 +4,7 @@ import (
 	web "MKICS"
 	"MKICS/backend/global"
 	"MKICS/backend/init/zaplog"
+	"MKICS/backend/middleware"
 	_router "MKICS/backend/router"
 	"MKICS/backend/utils/validator"
 	"MKICS/cmd/docs"
@@ -81,6 +82,7 @@ func Init() *gin.Engine {
 
 	eng.Use(zaplog.GinLogger())
 	eng.Use(zaplog.GinRecovery(true))
+	eng.Use(middleware.RSAPublicKeyMiddleware())
 
 	eng.NoRoute(func(ctx *gin.Context) {
 		if strings.HasPrefix(ctx.Request.URL.Path, "/ui/") {
