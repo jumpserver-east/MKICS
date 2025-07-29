@@ -2,11 +2,18 @@
     <o-form-wrap title="客服应用管理" @confirm="onConfirm">
         <el-form ref="kfForm" :model="formData" :rules="formRules" label-position="right" label-width="220px">
             
-            <!-- 基础信息 -->
+
             <el-collapse v-model="activeNames">
                 <el-collapse-item title="基础信息" name="1">
                     <el-form-item label="客服应用名称" prop="kfname">
                         <el-input v-model="formData.kfname" placeholder="请输入客服名称" />
+                            <el-tooltip effect="dark" placement="top-start" style="margin-left: 8px;">
+                            <template #content>
+                                客服应用的显示名称，用于内部识别和管理。<br/>
+                                示例：在线客服-售前咨询、AI客服-技术支持
+                            </template>
+                            <el-icon><QuestionFilled /></el-icon>
+                        </el-tooltip>
                     </el-form-item>
 
                     <el-form-item label="客服平台" prop="kfplatform">
@@ -105,10 +112,20 @@
                 </el-collapse-item>
 
                 <el-collapse-item title="转人工设置" name="5">
-                    <el-form-item label="转人工关键字列表" prop="transfer_keywords">
+                        <el-form-item label="转人工关键字列表" prop="transfer_keywords">
                         <el-input v-model="formData.transfer_keywords"
-                            placeholder="请输入转接关键字列表，用英文分号分隔，例如（转人工;人工）" />
-                    </el-form-item>
+                        placeholder="请输入转接关键字列表，用英文分号分隔，例如（转人工;人工）" />
+                        <el-tooltip effect="dark" placement="top-start" style="margin-left: 8px;">
+                        <template #content>
+                        设置用户发送哪些消息时，会自动转接人工客服。<br/>
+                        支持模糊匹配，多个关键字用英文分号分隔。<br/>
+                        示例：<code>转人工;help;联系客服</code>
+                        </template>
+                    <el-icon>
+        <QuestionFilled />
+    </el-icon>
+  </el-tooltip>
+</el-form-item>
                 </el-collapse-item>
             </el-collapse>
         </el-form>
@@ -128,7 +145,7 @@ import type { IConfig } from '@/api/llmapp/model/configModel';
 import { getAccountListApi } from '@/api/wecom/account';
 import type { IAccount } from '@/api/wecom/model/accountModel';
 import type { IKF } from '@/api/kf/model';
-
+import { QuestionFilled } from '@element-plus/icons-vue'
 import type { TLoading } from '@/types';
 import type { FormInstance, FormRules } from 'element-plus';
 
