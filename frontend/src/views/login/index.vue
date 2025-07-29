@@ -25,7 +25,6 @@
             <el-input
               v-model="loginForm.password"
               type="password"
-              show-password
               placeholder="请输入密码"
             >
               <template #prefix>
@@ -65,6 +64,8 @@ import { loginApi } from '@/api/login';
 import { setToken } from '@/utils'
 import router from '@/router'
 import type { FormInstance, FormRules } from 'element-plus'
+import { encryptPassword } from '@/utils/encrypt'
+import { ElMessage } from 'element-plus'
 
 const loginLoading = ref(false)
 const activeTab = ref('password')
@@ -87,15 +88,18 @@ const loginFun = () => {
     if (!valid) return;
     try {
       loginLoading.value = true
-      const res = await loginApi(form.loginForm);
+      const payload = {
+        ...form.loginForm,
+        password: encryptPassword(form.loginForm.password),
+      }
+      const res = await loginApi(payload);
       const access_token = res.data?.access_token;
       if (access_token) {
         setToken(access_token)
       }
-      loginLoading.value = false
       router.push('/home')
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('error:', error);
     } finally {
       loginLoading.value = false
     }
