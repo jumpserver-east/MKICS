@@ -1,6 +1,7 @@
 import { ElMessage } from 'element-plus'
 import { isString } from 'lodash-es'
-
+import { removeToken, clearLocal } from '../utils/auth'
+import router from '../router'
 export const showMessage = (status: number | string) => {
   let msg = ''
   if (isString(status)) {
@@ -10,6 +11,10 @@ export const showMessage = (status: number | string) => {
       case 400:
         msg = '请求错误(400)'
         break
+      case 401:
+        msg = '登录已过期，请重新登录'
+        break
+        // 没加401的状态怎么跳转
       case 404:
         msg = '请求出错(404)'
         break
