@@ -1,5 +1,4 @@
 import { resolve } from "node:path";
-import { URL, fileURLToPath } from "node:url";
 import UnoCSS from "unocss/vite";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
@@ -48,7 +47,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": resolve(__dirname, "src"),
     },
   },
   css: {
@@ -75,5 +74,16 @@ export default defineConfig({
         },
       },
     },
+  },
+  optimizeDeps: {
+    include: [
+      "vue",
+      "vue-router",
+      "pinia",
+      "axios",
+      "element-plus",
+      "dayjs",
+      "lodash-es",
+    ],
   },
 });
