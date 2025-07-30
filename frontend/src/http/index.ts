@@ -1,13 +1,13 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
-import { TOOKENkEY, clearLocal, getToken } from '@/utils'
-import { showMessage } from './status'
+import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
+import { TOOKENkEY, clearLocal, getToken } from "@/utils";
+import { showMessage } from "./status";
 
 export interface ResultData<T> {
   code: number;
   message: string;
   data: T;
 }
-export const baseURL = import.meta.env.VITE_API_URL as string
+export const baseURL = import.meta.env.VITE_API_URL as string;
 const config = {
   baseURL,
   timeout: 50000,
@@ -20,46 +20,50 @@ class RequestHttp {
     this.service = axios.create(config);
     this.service.interceptors.request.use(
       (config) => {
-        const token = getToken()
+        const token = getToken();
         if (token && config && config.headers) {
           config.headers[TOOKENkEY] = `Bearer ${token}`;
         }
-        return config
+        return config;
       },
       (error) => {
-        return Promise.reject(error)
+        return Promise.reject(error);
       }
     );
 
     this.service.interceptors.response.use(
       (res) => {
-        const { data } = res
+        const { data } = res;
         switch (data.code) {
           case 200:
-            return data
+            return data;
           default:
-            showMessage(data.message)
-            return Promise.reject(data)
+            showMessage(data.message);
+            return Promise.reject(data);
         }
       },
       (error) => {
-        const { response } = error
+        const { response } = error;
         if (response) {
           if (response.status === 401) {
-            clearLocal()
-            window.location.href = '/'
+            clearLocal();
+            window.location.href = "/";
           } else if (response.data.message) {
-            showMessage(response.data.message || response.status)
+            showMessage(response.data.message || response.status);
           }
         }
-        return Promise.reject(error)
+        return Promise.reject(error);
       }
-    )
+    );
   }
   get<T>(url: string, params?: object, _object = {}): Promise<ResultData<T>> {
     return this.service.get(url, { params, ..._object });
   }
-  post<T>(url: string, params?: object, timeout?: number): Promise<ResultData<T>> {
+  post<T>(
+    url: string,
+    params?: object,
+    timeout?: number
+  ): Promise<ResultData<T>> {
     return this.service.post(url, params, {
       baseURL: import.meta.env.VITE_API_URL as string,
       timeout: timeout ? timeout : 50000,
@@ -72,13 +76,21 @@ class RequestHttp {
   patch<T>(url: string, params?: object, _object = {}): Promise<ResultData<T>> {
     return this.service.patch(url, params, _object);
   }
-  delete<T>(url: string, data?: object , _object = {}): Promise<ResultData<T>> {
-    return this.service.delete(url, { data, ..._object } );
+  delete<T>(url: string, data?: object, _object = {}): Promise<ResultData<T>> {
+    return this.service.delete(url, { data, ..._object });
   }
-  download<BlobPart>(url: string, params?: object, _object = {}): Promise<BlobPart> {
+  download<BlobPart>(
+    url: string,
+    params?: object,
+    _object = {}
+  ): Promise<BlobPart> {
     return this.service.post(url, params, _object);
   }
-  upload<T>(url: string, params: object = {}, config?: AxiosRequestConfig): Promise<T> {
+  upload<T>(
+    url: string,
+    params: object = {},
+    config?: AxiosRequestConfig
+  ): Promise<T> {
     return this.service.post(url, params, config);
   }
 }
