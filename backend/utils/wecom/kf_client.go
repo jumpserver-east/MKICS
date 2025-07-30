@@ -1,11 +1,13 @@
 package wecom
 
 import (
+	"MKICS/backend/global"
 	"MKICS/backend/utils/wecom/client"
 )
 
 func NewWecomKFClient(conf client.WecomConfig) (*client.WecomKF, error) {
-	kFClient, err := client.NewWork(conf).GetKF()
+	global.Wecom = client.NewWork(conf)
+	kFClient, err := global.Wecom.GetKF()
 	if err != nil {
 		return nil, err
 	}
