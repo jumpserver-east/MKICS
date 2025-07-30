@@ -302,7 +302,14 @@ func (u *WecomLogic) initializeWecomClient() (err error) {
 }
 
 func (u *WecomLogic) processMessage(msg wecomclient.Message) (err error) {
-	err = kHRepo.FirstOrCreatebyKHID(model.KH{KHID: msg.ExternalUserID})
+	externalcontact := global.Wecom.GetExternalContact()
+	userDetail, err := externalcontact.GetExternalUserDetail(msg.ExternalUserID)
+	if err != nil {
+		global.ZAPLOG.Error(err.Error())
+		global.ZAPLOG.Error(userDetail.Error())
+		return
+	}
+	err = kHRepo.FirstOrCreatebyKHID(model.KH{KHID: msg.ExternalUserID, SceneParam: userDetail.ExternalContact.Name})
 	if err != nil {
 		global.ZAPLOG.Error(err.Error())
 		return
