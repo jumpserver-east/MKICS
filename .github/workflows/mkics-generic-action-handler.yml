@@ -7,7 +7,6 @@ jobs:
     name: Generic handler for MKICS Repos
     runs-on: ubuntu-latest
     steps:
-      - name: Add labels
-        uses: jumpserver/action-generic-handler@master
+      - uses: jumpserver/action-generic-handler@master
         env:
-          GITHUB_TOKEN: ${{ secrets.PRIVATE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
