@@ -423,10 +423,9 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 	kFInfo, err := kFRepo.Get(kFRepo.WithKFID(textMessage.OpenKFID))
 	if err != nil {
+		global.ZAPLOG.Error(err.Error())
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(kFInfo.BotTimeout)*time.Second)
-	defer cancel()
 	resultChan := make(chan string)
 	errorChan := make(chan error)
 	var sendTextMsgOptions wecomclient.SendTextMsgOptions
@@ -436,12 +435,15 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 		llmappLogic := NewILLMAppLogic()
 		fullContent, err := llmappLogic.ChatMessage(textMessage.ExternalUserID, kFInfo.BotID, textMessage.Text.Text.Content)
 		if err != nil {
+			global.ZAPLOG.Error(err.Error())
 			errorChan <- err
 		} else {
 			resultChan <- MarkdownToText(fullContent)
 		}
 	}()
-	go func(ctx context.Context, resultChan chan string, errorChan chan error) {
+	go func(resultChan chan string, errorChan chan error) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(kFInfo.BotTimeout)*time.Second)
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			sendTextMsgOptions.Text.Content = kFInfo.BotTimeoutMsg
@@ -464,7 +466,7 @@ func (u *WecomLogic) handleBotReply(textMessage wecomclient.Text) (err error) {
 			global.ZAPLOG.Error(err.Error())
 			return
 		}
-	}(ctx, resultChan, errorChan)
+	}(resultChan, errorChan)
 	chatkey := constant.KeyWecomBotStaffPrefix + kFInfo.BotID + ":" + textMessage.ExternalUserID
 	remainingTTL, err := global.RDS.TTL(context.Background(), chatkey).Result()
 	if err != nil {
