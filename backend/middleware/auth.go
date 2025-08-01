@@ -3,6 +3,7 @@ package middleware
 import (
 	"MKICS/backend/app/dto/response"
 	"MKICS/backend/constant"
+	"MKICS/backend/global"
 	"MKICS/backend/utils/jwt"
 	"MKICS/backend/utils/redis"
 	"strings"
@@ -27,6 +28,7 @@ func AuthRequired() gin.HandlerFunc {
 
 		claims, err := jwt.ParseToken(tokenString)
 		if err != nil {
+			global.ZAPLOG.Error(err.Error())
 			response.Unauthorized(ctx, constant.ErrTokenParse)
 			return
 		}
