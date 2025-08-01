@@ -1,12 +1,11 @@
 package jwt
 
 import (
-	"MKICS/backend/constant"
 	"MKICS/backend/global"
 	"sync"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var jwtSecret string
@@ -15,13 +14,6 @@ var secretOnce sync.Once
 type Claims struct {
 	UUID string `json:"uuid"`
 	jwt.RegisteredClaims
-}
-
-func (c Claims) Valid() error {
-	if c.UUID == "" {
-		return constant.ErrUUIDIsEmpty
-	}
-	return c.RegisteredClaims.Valid()
 }
 
 func initSecret() {
@@ -65,6 +57,7 @@ func ParseToken(jwtTokenString string) (claims *Claims, err error) {
 			return jwtSecret, nil
 		})
 	if err != nil {
+		global.ZAPLOG.Error(err.Error())
 		return
 	}
 
