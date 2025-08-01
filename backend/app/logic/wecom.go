@@ -390,9 +390,19 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 	if err != nil {
 		return
 	}
+	var decodedSceneParam string
+	kHinfo, err := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
+	if err != nil {
+		return err
+	}
+	decodedSceneParam = kHinfo.SceneParam
+	botWelcomeMsg := injectVariables(kFInfo.BotWelcomeMsg, map[string]string{
+		"scene_param": decodedSceneParam,
+	})
 	switch kFInfo.Status {
 	case constant.KFStatusRobotToHuman:
-		if strings.Contains(kFInfo.TransferKeywords, textMessage.Text.Text.Content) {
+		switch {
+		case textMessage.Text.Text.Content == "企业版购买咨询":
 			var sendTextMsgOptions wecomclient.SendTextMsgOptions
 			sendTextMsgOptions.Touser = textMessage.ExternalUserID
 			sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
@@ -400,16 +410,209 @@ func (u *WecomLogic) handleBotSession(textMessage wecomclient.Text) (err error) 
 			err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
 			if err != nil {
 				global.ZAPLOG.Error(err.Error())
-				return
 			}
-			err = u.handleTransferToStaff(textMessage, kFInfo)
+			err = u.handleTransferToStaff(textMessage, kFInfo, "售前")
 			if err != nil {
 				global.ZAPLOG.Error(err.Error())
+			}
+			return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
+		case textMessage.Text.Text.Content == "售后服务支持":
+			var sendTextMsgOptions wecomclient.SendTextMsgOptions
+			sendTextMsgOptions.Touser = textMessage.ExternalUserID
+			sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+			sendTextMsgOptions.Text.Content = "您好，感谢联系飞致云，很高兴为您服务！请输入产品序列号、提供公司全称或简称，以便确认您所使用产品信息。产品序列号由字母和数字组成，类似“JSN1234567X”，可登陆产品，在“系统设置-许可证”页面，进行查看。（例如：杭州飞致云 或者 JSN1234567X）"
+			err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+			if err != nil {
+				global.ZAPLOG.Error(err.Error())
+			}
+			verifyKey := fmt.Sprintf("verify_attempt:%s", textMessage.ExternalUserID)
+			global.RDS.Set(context.Background(), verifyKey, 0, 900*time.Second)
+			return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusVerification, KHID: textMessage.ExternalUserID})
+		case textMessage.Text.Text.Content == "返回和智能助手对话":
+			u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+				BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+					OpenKfid: textMessage.OpenKFID,
+					Touser:   textMessage.ExternalUserID,
+				},
+				MenuMsgOptions: parseMenuText(botWelcomeMsg),
+			})
+			return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
+		}
+		kHInfo, _ := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
+		switch kHInfo.VerifyStatus {
+		case 0, constant.KHStatusUnprocessed:
+			if strings.Contains(kFInfo.TransferKeywords, textMessage.Text.Text.Content) {
+				selectRoleMsg := "#H 您好，请选择需要的咨询:\n#TXT -------------------------\n#CLK 企业版购买咨询\n#TXT -------------------------\n#CLK 售后服务支持\n#TXT -------------------------\n#CLK 返回和智能助手对话\n#T -------------------------"
+				err = u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+					BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+						Touser:         textMessage.ExternalUserID,
+						OpenKfid:       textMessage.OpenKFID,
+						ForceImmediate: true,
+					},
+					MenuMsgOptions: parseMenuText(selectRoleMsg),
+				})
+				if err != nil {
+					global.ZAPLOG.Error(err.Error())
+				}
 				return
 			}
-			return
+			return u.handleBotReply(textMessage)
+		case constant.KHStatusVerification:
+			const (
+				verifyMaxAttempts = 3
+			)
+			verifyKey := fmt.Sprintf("verify_attempt:%s", textMessage.ExternalUserID)
+			ctx := context.Background()
+			attempts, err := global.RDS.Get(ctx, verifyKey).Int()
+			if err == redis.Nil {
+				kHRepo.UpdatebyKHID(model.KH{
+					VerifyStatus: constant.KHStatusUnprocessed,
+					KHID:         textMessage.ExternalUserID,
+				})
+				return u.handleBotSession(textMessage)
+			}
+			if err != nil {
+				return err
+			}
+			var sendTextMsgOptions wecomclient.SendTextMsgOptions
+			sendTextMsgOptions.Touser = textMessage.ExternalUserID
+			sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+			if attempts >= verifyMaxAttempts {
+				sendTextMsgOptions.Text.Content = "验证失败次数已达上限，已返回智能助手的对话。"
+				if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+					global.ZAPLOG.Error(err.Error())
+					return err
+				}
+				_ = global.RDS.Del(ctx, verifyKey).Err()
+				u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+					BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+						OpenKfid: textMessage.OpenKFID,
+						Touser:   textMessage.ExternalUserID,
+					},
+					MenuMsgOptions: parseMenuText(botWelcomeMsg),
+				})
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
+			}
+			maker, max := 0, 100
+			for {
+				resp, err := global.Support.GetSubscriptionsWithQuickSearch(maker, max, textMessage.Text.Text.Content)
+				maker = resp.Total
+				global.ZAPLOG.Debug("", zap.Any("", resp.Data))
+				if err != nil {
+					sendTextMsgOptions.Text.Content = "内部出现错误，可继续向智能助手进行提问。"
+					if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+						global.ZAPLOG.Error(err.Error())
+						return err
+					}
+					_ = global.RDS.Del(ctx, verifyKey).Err()
+					u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+						BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+							OpenKfid: textMessage.OpenKFID,
+							Touser:   textMessage.ExternalUserID,
+						},
+						MenuMsgOptions: parseMenuText(botWelcomeMsg),
+					})
+					return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
+				}
+				if len(resp.Data) == 0 {
+					attempts, _ := global.RDS.Incr(ctx, verifyKey).Result()
+					noPermInfo := fmt.Sprintf("#H 未匹配到正确的授权，请确认后再次发起人工，例如：杭州飞致云 或者 JSN1234567X。\n#TXT 剩余尝试次数：%d\n#CLK 返回和智能助手对话", verifyMaxAttempts-int(attempts)+1)
+					err := u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+						BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+							Touser:   textMessage.ExternalUserID,
+							OpenKfid: textMessage.OpenKFID,
+						},
+						MenuMsgOptions: parseMenuText(noPermInfo),
+					})
+					if err != nil {
+						global.ZAPLOG.Error(err.Error())
+					}
+					return nil
+				}
+				for _, sub := range resp.Data {
+					if !sub.Expired {
+						selectInfoMsg := fmt.Sprintf(
+							"#H 您的订阅信息如下：\n"+
+								"#TXT 名称：%s\n"+
+								"#TXT 产品：%s\n"+
+								"#TXT 服务类型：%s\n"+
+								"#TXT 授权数量：%d\n"+
+								"#CLK 正确\n"+
+								"#CLK 不正确",
+							sub.Client.Name,
+							sub.ProductService.Name,
+							sub.ServiceTypeName,
+							sub.Amount,
+						)
+						u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+							BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+								Touser:   textMessage.ExternalUserID,
+								OpenKfid: textMessage.OpenKFID,
+							},
+							MenuMsgOptions: parseMenuText(selectInfoMsg),
+						})
+						_ = global.RDS.Del(ctx, verifyKey).Err()
+						return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUserInfoConfirm, KHID: textMessage.ExternalUserID})
+					}
+				}
+				attempts, _ := global.RDS.Incr(ctx, verifyKey).Result()
+				sendTextMsgOptions.Text.Content = fmt.Sprintf("检测到您的授权已过期，当前无法匹配到有效服务。您可以联系管理员或销售人员续费。请确认后再次输入正确授权，例如：杭州飞致云 或者 JSN1234567X（剩余尝试次数：%d）", verifyMaxAttempts-int(attempts)+1)
+				if err := u.wecomkf.SendTextMsg(sendTextMsgOptions); err != nil {
+					global.ZAPLOG.Error(err.Error())
+					return err
+				}
+			}
+		case constant.KHStatusUserInfoConfirm:
+			switch textMessage.Text.Text.Content {
+			case "正确":
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "正在为你转接人工..."
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(err.Error())
+				}
+				err = u.handleTransferToStaff(textMessage, kFInfo, "售后")
+				if err != nil {
+					global.ZAPLOG.Error(err.Error())
+				}
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
+			case "不正确":
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "已返回和智能助手的对话，可重新发起转人工请求。"
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(err.Error())
+				}
+				u.wecomkf.SendMenuMsg(wecomclient.SendMenuMsgOptions{
+					BaseSendMsgOptions: wecomclient.BaseSendMsgOptions{
+						OpenKfid: textMessage.OpenKFID,
+						Touser:   textMessage.ExternalUserID,
+					},
+					MenuMsgOptions: parseMenuText(botWelcomeMsg),
+				})
+				return kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
+			default:
+				var sendTextMsgOptions wecomclient.SendTextMsgOptions
+				sendTextMsgOptions.Touser = textMessage.ExternalUserID
+				sendTextMsgOptions.OpenKfid = textMessage.OpenKFID
+				sendTextMsgOptions.Text.Content = "已退出转人工流程，返回和智能助手对话"
+				err = u.wecomkf.SendTextMsg(sendTextMsgOptions)
+				if err != nil {
+					global.ZAPLOG.Error(err.Error())
+				}
+				err = kHRepo.UpdatebyKHID(model.KH{VerifyStatus: constant.KHStatusUnprocessed, KHID: textMessage.ExternalUserID})
+				if err != nil {
+					return
+				}
+				return u.handleBotReply(textMessage)
+			}
+		default:
+			return u.handleBotReply(textMessage)
 		}
-		return u.handleBotReply(textMessage)
 	case constant.KFStatusOnlyRobot:
 		return u.handleBotReply(textMessage)
 	case constant.KFStatusOnlyHuman:
@@ -782,7 +985,7 @@ func (u *WecomLogic) handleServiceStateTransInProgress(serviceStateTransOptions 
 	return
 }
 
-func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo model.KF) (err error) {
+func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo model.KF, role string) (err error) {
 	if kFInfo.ReceivePriority == 1 {
 		kHInfo, err := kHRepo.Get(kHRepo.WithKHID(textMessage.ExternalUserID))
 		if err != nil {
@@ -792,6 +995,10 @@ func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo 
 		if kHInfo.StaffID != "" {
 			for _, staffInfo := range kFInfo.Staffs {
 				if staffInfo.StaffID == kHInfo.StaffID {
+					if staffInfo.Role != role {
+						global.ZAPLOG.Debug("服务人员角色不匹配，跳过", zap.String("staffid", staffInfo.StaffID), zap.String("角色", staffInfo.Role))
+						continue
+					}
 					isStaffWork, err := isStaffWorkByStaffID(kHInfo.StaffID)
 					if err != nil {
 						global.ZAPLOG.Error(err.Error())
@@ -819,7 +1026,7 @@ func (u *WecomLogic) handleTransferToStaff(textMessage wecomclient.Text, kFInfo 
 			if err != nil {
 				return err
 			}
-			if isStaffWork {
+			if isStaffWork && staffinfo.Role == role {
 				staffIDs = append(staffIDs, staffinfo.StaffID)
 			}
 		}

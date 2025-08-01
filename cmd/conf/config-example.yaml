@@ -32,3 +32,8 @@ log:
   max_size: 200
   max_age: 30
   max_backups: 7
+
+support:
+  baseurl: 127.0.0.1
+  username: mkics
+  password: mkics

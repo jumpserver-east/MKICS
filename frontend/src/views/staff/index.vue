@@ -39,6 +39,7 @@ const tableConfig: ITableConfig = {
   headers: [
     { prop: 'staffname', label: '接待人员名称' },
     { prop: 'staffid', label: '接待人员 ID' },
+    { prop: 'role', label: '角色' },
     { prop: 'policy_list', label: '策略列表', slot: 'policy_list' },
   ],
   operations: {
